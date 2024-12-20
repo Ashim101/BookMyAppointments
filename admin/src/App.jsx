@@ -25,7 +25,6 @@ function App() {
 
   const { adminToken } = useSelector(store => store.settings);
   const { doctorToken } = useSelector(store => store.doctor)
-  console.log(adminToken);
 
   return (
     <Router> {/* Ensure the Router always wraps the entire app */}

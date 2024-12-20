@@ -1,20 +1,18 @@
 import React from 'react'
 // import { doctors } from '../assets/assets_frontend/assets'
-import { useNavigate, useNavigation } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import CircularSpinner from './Spinner'
 
-const TopDoctors = () => {
-    const doctors = useSelector(store => store.doctors)
+const Doctors = ({ doctors }) => {
     const navigate = useNavigate()
+    if (doctors.length == 0)
+        return (
+            <CircularSpinner />)
     return (
         <div >
-            <div className='flex  flex-col items-center my-14 mt-20 gap-2'>
-                <h1 className='text-xl font-light md:text-3xl'>Top doctors to book</h1>
-                <p className='text-sm font-light md:text-xl text-center'>Simply browse through our extensive list of best doctors</p>
 
-            </div>
             <div className=' grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 '>
-                {doctors.slice(0, 10).map((item, index) => (
+                {doctors.map((item, index) => (
                     <div onClick={() => navigate(`/appointments/${item._id}`)} className='border-halka h-full hover:translate-y-[-12px] transition-all duration-300 rounded-lg p-[2px]  cursor-pointer flex flex-col items-center '>
                         <div className='bg-slate-100 h-[167px] w-full rounded-lg '>
                             <img src={item.image} alt="" className='w-full h-full object-cover' />
@@ -39,10 +37,9 @@ const TopDoctors = () => {
 
             </div>
 
-            <button onClick={() => navigate("/doctors")} className='flex my-5 bg-primary rounded-md px-3 py-1 text-white mx-auto'>More</button>
 
         </div>
     )
 }
 
-export default TopDoctors
+export default Doctors

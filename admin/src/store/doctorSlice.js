@@ -1,7 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import axios from 'axios'
-import { useSelector } from "react-redux";
-import { toast } from "react-toastify";
+
 
 const doctorSlice = createSlice({
     name: 'doctors',

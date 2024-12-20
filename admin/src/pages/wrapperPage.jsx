@@ -22,7 +22,6 @@ const WrapperPage = ({ children }) => {
 
             });
             if (data.success) {
-                toast.success('Appointments fetched successfully');
                 dispatch(appointmentActions.initializeAppointments(data.message))
             } else {
                 toast.error(data.error.message);
@@ -34,34 +33,12 @@ const WrapperPage = ({ children }) => {
         }
     };
 
-    const getDashboardData = async () => {
-        try {
-            const { data } = await axios.get(`${backendUrl}api/admin/get-dashboard-data`, {
-                headers: {
-                    atoken: adminToken
-                }
-            });
 
-            console.log(data)
-
-            if (data.success) {
-                console.log(data)
-                setDashData(data.message)
-            }
-            else {
-                console.log("error")
-                toast.error("cant fetch dashboard data")
-            }
-        } catch (error) {
-            toast.error('Error fetching dashboard data');
-        }
-    };
 
 
 
     useEffect(() => {
         fetchAllAppointments();
-        getDashboardData();
     }, [adminToken, backendUrl]);
 
     return (

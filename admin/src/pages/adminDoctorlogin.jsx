@@ -50,7 +50,6 @@ const LoginPage = () => {
                 if (data.success) {
                     localStorage.setItem("dtoken", data.token);
                     dispatch(doctorActions.setDoctorToken(data.token));
-                    console.log(data.token)
                     navigate('/Dashboard'); // Navigate to dashboard page after successful login
                 } else {
                     toast.error("Invalid credentials");
