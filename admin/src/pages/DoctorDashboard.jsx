@@ -34,19 +34,14 @@ const DoctorDashBoard = () => {
 
     const fetchAllAppointments = async () => {
         try {
-            console.log("fetching")
             const { data } = await axios.get(`${backendUrl}api/doctor/all-appointments`, {
                 headers: {
                     dtoken: doctorToken,  // Ensure adminToken is correct
                 },
             });
-            console.log(data)
 
             if (data.success) {
-                toast.success('Appointments fetched successfully');
                 dispatch(appointmentActions.initializeAppointments(data.message))
-            } else {
-                toast.error(data.error.message);
             }
         } catch (e) {
             toast.error('Error fetching appointments');
@@ -65,16 +60,11 @@ const DoctorDashBoard = () => {
                 }
             });
 
-            console.log(data)
 
             if (data.success) {
-                console.log(data)
                 setDashData(data.message)
             }
-            else {
-                console.log("error")
-                toast.error("cant fetch dashboard data")
-            }
+
         } catch (error) {
             console.error('Error fetching dashboard data');
         }

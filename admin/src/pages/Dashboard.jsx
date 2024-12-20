@@ -8,8 +8,6 @@ import { assets } from '../assets/assets_admin/assets';
 const Dashboard = () => {
     const { adminToken, backendUrl } = useSelector(store => store.settings);
 
-    const { appointments } = useSelector(store => store.appointments);
-
     const [dashData, setDashData] = useState();
 
     const dispatch = useDispatch()
@@ -42,15 +40,13 @@ const Dashboard = () => {
 
             });
             if (data.success) {
-                toast.success('Appointments fetched successfully');
+
                 dispatch(appointmentActions.initializeAppointments(data.message))
-            } else {
-                toasttoast.error(datatoast.error.message);
             }
 
 
         } catch (e) {
-            toasttoast.error('Error fetching appointments');
+            toast.error('Error fetching appointments');
         }
     };
 
@@ -62,18 +58,13 @@ const Dashboard = () => {
                 }
             });
 
-            console.log(data)
 
             if (data.success) {
-                console.log(data)
                 setDashData(data.message)
             }
-            else {
-                console.log("error")
-                toasttoast.error("cant fetch dashboard data")
-            }
+
         } catch (error) {
-            toasttoasttoast.error('Error fetching dashboard data');
+            toast.error('Error fetching dashboard data');
         }
     };
 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom';
+import Doctors from '../components/DoctorCards';
+
 
 const Doctor = () => {
     const navigate = useNavigate()
@@ -46,31 +48,8 @@ const Doctor = () => {
                     <p onClick={() => { speciality === "Gastroenterologist" ? navigate("/doctors") : navigate("/doctors/Gastroenterologist") }} className={`border-2 border-slate-300 rounded-lg px-4 py-2 cursor-pointer ${speciality === 'Gastroenterologist' ? "text-white bg-slate-500" : "text-black bg-white"} w-1/2 sm:w-full`}>Gastroenterologist</p>
                 </div>
                 <div className='w-full'>
-                    <div className=' grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 w-full'>
-                        {filterDoctors.map((item, index) => (
-                            <div onClick={() => navigate(`/appointments/${item._id}`)} className='border-2 hover:translate-y-[-12px] transition-all duration-300 rounded-lg p-[2px] border-slate-300 cursor-pointer '>
-                                <div className='bg-slate-100 '>
-                                    <img src={item.image} alt="" className='h-56 md:h-auto' />
+                    <Doctors doctors={filterDoctors} />
 
-
-                                </div>
-                                <div className='flex flex-col items-start  gap-1'>
-                                    <div className='flex mb-3 items-center gap-2 '>
-
-                                        <p className={`${item.available ? 'bg-green-500' : 'bg-gray-500'}  h-2 w-2 rounded-full`}></p>
-                                        <p className={`${item.available ? 'text-green-500' : 'text-gray-500'}  `}>{item.available ? "Available" : "Not Available"}</p>
-                                    </div>
-                                    <p className='text-xl font-normal '>{item.name}</p>
-                                    <p className='font-light'>{item.speciality}</p>
-
-
-                                </div>
-
-                            </div>
-
-                        ))}
-
-                    </div>
                 </div>
 
             </div>

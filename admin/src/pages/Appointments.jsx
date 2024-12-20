@@ -22,7 +22,6 @@ const Appointments = () => {
             console.log(data)
 
             if (data.success) {
-                toast.success('Appointments fetched successfully');
                 dispatch(appointmentActions.initializeAppointments(data.message))
             } else {
                 toast.error(data.error.message);

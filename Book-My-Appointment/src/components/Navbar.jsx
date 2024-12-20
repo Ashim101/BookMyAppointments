@@ -80,7 +80,7 @@ const Navbar = () => {
                             <ul className="py-2 space-y-2">
                                 <li onClick={() => { navigate("my-profile") }} className=" mx-3 hover:bg-gray-100 cursor-pointer">My Profile</li>
                                 <li onClick={() => { navigate("my-appointments") }} className=" mx-3 hover:bg-gray-100 cursor-pointer">My Appointments</li>
-                                <li onClick={() => { dispatch(settingActions.clearToken()); localStorage.removeItem("token") }
+                                <li onClick={() => { dispatch(settingActions.clearToken()); localStorage.removeItem("token"); navigate("/") }
                                 } className="mx-2 hover:bg-gray-100 cursor-pointer">Logout</li>
                             </ul>
                         </div>
