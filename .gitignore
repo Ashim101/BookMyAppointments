@@ -33,3 +33,6 @@ Backend/uploads/
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code local state
+.claude/
