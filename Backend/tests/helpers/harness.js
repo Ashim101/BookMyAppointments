@@ -134,6 +134,18 @@ export async function startHarness({ env = {}, overrides = {}, now = BASE_NOW } 
       const res = await request.post('/api/appointments').set(h.bearer(patient.token)).send({ doctorId, date, time, reason });
       return res;
     },
+
+    /** Books a slot and has the doctor complete it. Leaves the clock at the appointment start. */
+    async completed(patient, doctor, { date = h.day(3), time = '10:00', prescription = [] } = {}) {
+      const booked = (await h.book(patient, doctor.id, { date, time })).body.data;
+      h.clock.set(Date.parse(booked.startsAt));
+      await request
+        .patch(`/api/appointments/${booked.id}/complete`)
+        .set(h.bearer(doctor.token))
+        .send({ notes: 'Done', prescription })
+        .expect(200);
+      return booked.id;
+    },
   };
   return h;
 }
