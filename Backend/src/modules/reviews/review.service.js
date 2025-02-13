@@ -46,7 +46,7 @@ export function createReviewService({ appointments }) {
     const reviewed = await Appointment.findByIdAndUpdate(
       appointment._id,
       { $set: { review: { rating, comment, createdAt: new Date() } } },
-      { new: true },
+      { returnDocument: 'after' },
     );
     await recomputeRating(appointment.doctor);
     return appointments.serialize(reviewed, user);

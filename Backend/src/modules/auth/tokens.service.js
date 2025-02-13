@@ -39,7 +39,7 @@ export function createTokenService({ config, clock }) {
     const record = await RefreshToken.findOneAndUpdate(
       { tokenHash, revokedAt: null, expiresAt: { $gt: now } },
       { $set: { revokedAt: now } },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (record) return { userId: record.userId, role: record.role, family: record.family };
 

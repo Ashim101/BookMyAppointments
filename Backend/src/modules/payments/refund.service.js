@@ -12,7 +12,7 @@ export function createRefundService({ provider, clock, logger }) {
     const updated = await Appointment.findOneAndUpdate(
       { _id: appointmentId, paymentStatus: 'refund_pending' },
       { $set: { paymentStatus: 'refunded', 'payment.refundId': refundId, 'payment.refundedAt': now } },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (updated) await Payment.updateOne({ appointment: appointmentId, status: 'paid' }, { $set: { status: 'refunded' } });
     return updated;

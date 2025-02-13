@@ -9,14 +9,16 @@ const isValidZone = (zone) => {
   }
 };
 
-const csv = z
-  .string()
-  .transform((value) =>
-    value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean),
-  );
+const csv = (fallback) =>
+  z
+    .string()
+    .default(fallback)
+    .transform((value) =>
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    );
 
 const bool = z.enum(['true', 'false']).transform((value) => value === 'true');
 
@@ -41,7 +43,7 @@ const schema = z
     ADMIN_EMAIL: z.email().optional(),
     ADMIN_PASSWORD_HASH: z.string().startsWith('$2', 'must be a bcrypt hash').optional(),
 
-    CORS_ORIGINS: csv.default('http://localhost:5173,http://localhost:5174'),
+    CORS_ORIGINS: csv('http://localhost:5173,http://localhost:5174'),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
     AUTH_RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().min(0.01).default(15),
 

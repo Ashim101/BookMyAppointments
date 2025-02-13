@@ -39,7 +39,7 @@ export function createNotificationService({ logger }) {
   }
 
   async function markRead(user, id) {
-    const doc = await Notification.findOneAndUpdate({ _id: id, ...scope(user) }, { $set: { read: true } }, { new: true });
+    const doc = await Notification.findOneAndUpdate({ _id: id, ...scope(user) }, { $set: { read: true } }, { returnDocument: 'after' });
     if (!doc) throw notFound('Notification');
     return toDto(doc);
   }

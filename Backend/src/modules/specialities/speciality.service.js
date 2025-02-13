@@ -42,7 +42,7 @@ export function createSpecialityService() {
   /** The slug is a stable reference used by doctors and appointments, so renaming keeps it. */
   async function update(id, changes) {
     try {
-      const updated = await Speciality.findByIdAndUpdate(id, { $set: changes }, { new: true });
+      const updated = await Speciality.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after' });
       if (!updated) throw notFound('Speciality');
     } catch (err) {
       if (err.code === 11000) throw new AppError('CONFLICT', 'A speciality with this name already exists');

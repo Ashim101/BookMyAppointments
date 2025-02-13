@@ -36,7 +36,7 @@ export function createPaymentService({ provider, appointments, notifications, re
           'payment.paidAt': new Date(clock.now()),
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
   const notifyPaid = (appointment) =>
@@ -78,7 +78,7 @@ export function createPaymentService({ provider, appointments, notifications, re
     const orphan = await Appointment.findOneAndUpdate(
       { _id: payment.appointment, status: { $in: ['cancelled', 'no_show'] }, paymentStatus: 'unpaid' },
       { $set: { paymentStatus: 'refund_pending', 'payment.orderId': orderId, 'payment.paymentId': paymentId } },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (orphan) await refunds.settle(orphan);
   }

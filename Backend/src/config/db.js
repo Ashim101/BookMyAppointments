@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
-export async function connectDatabase(uri) {
+export async function connectDatabase(uri, options = {}) {
   mongoose.set('strictQuery', true);
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000, ...options });
   // Unique indexes are what prevent double booking, so wait for them before serving traffic.
   await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
 }
