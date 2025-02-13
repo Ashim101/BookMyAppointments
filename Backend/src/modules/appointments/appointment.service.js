@@ -196,6 +196,9 @@ export function createAppointmentService({ settings, scheduling, notifications, 
     const appointment = await findFor(user, id);
     assertAllowed('reschedule', await context(user, appointment));
 
+    if (date === appointment.date && time === appointment.time) {
+      throw new AppError('SLOT_UNAVAILABLE', 'Choose a different slot than the current one');
+    }
     const doctor = await Doctor.findOne({ _id: appointment.doctor, active: true });
     if (!doctor || !doctor.available) throw new AppError('SLOT_UNAVAILABLE', 'This doctor is not accepting bookings right now');
     const slot = await scheduling.offerSlot(doctor, date, time);

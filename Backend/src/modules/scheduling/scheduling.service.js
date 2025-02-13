@@ -1,5 +1,6 @@
 import { Appointment } from '../appointments/appointment.model.js';
 import { HOLDS_SLOT } from '../appointments/stateMachine.js';
+import { AppError } from '../../utils/AppError.js';
 import { addDays } from '../../utils/time.js';
 import { Leave } from './leave.model.js';
 import { findOfferedSlot, generateAvailability } from './engine.js';
@@ -45,11 +46,16 @@ export function createSchedulingService({ settings, clock }) {
     };
   }
 
-  /** Returns `{ startsAt, endsAt, timezone }` when the slot can be booked now, otherwise null. */
+  /**
+   * Returns `{ startsAt, endsAt, timezone }` when the slot can be booked now and null when it is
+   * not offered at all. A slot that exists but is already held raises SLOT_TAKEN.
+   */
   async function offerSlot(doctor, date, time) {
     const { bookedByDate, ...ctx } = await context(doctor, date, 1);
-    const slot = findOfferedSlot({ ...ctx, date, time, bookedTimes: bookedByDate.get(date) });
-    return slot ? { startsAt: new Date(slot.startsAt), endsAt: new Date(slot.endsAt), timezone: ctx.timezone } : null;
+    const slot = findOfferedSlot({ ...ctx, date, time });
+    if (!slot) return null;
+    if (bookedByDate.get(date)?.has(time)) throw new AppError('SLOT_TAKEN', 'That slot has just been taken. Please choose another.');
+    return { startsAt: new Date(slot.startsAt), endsAt: new Date(slot.endsAt), timezone: ctx.timezone };
   }
 
   return { getAvailability, offerSlot };
