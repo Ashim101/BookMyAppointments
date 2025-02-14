@@ -29,22 +29,22 @@ Optional integrations degrade cleanly: without Cloudinary, images go to `uploads
 with different schedules and leave days, 8 patients, and about 60 appointments in every status with payments,
 consultations and reviews.
 
-| Account | Email | Password |
-|---|---|---|
-| Demo patient | `demo.patient@example.com` | `Demo@12345` |
-| Doctors (all 12) | e.g. `aarav.sharma@clinic.example.com` | `Doctor@12345` |
-| Admin | `ADMIN_EMAIL` | the password you hashed |
+| Account          | Email                                  | Password                |
+| ---------------- | -------------------------------------- | ----------------------- |
+| Demo patient     | `demo.patient@example.com`             | `Demo@12345`            |
+| Doctors (all 12) | e.g. `aarav.sharma@clinic.example.com` | `Doctor@12345`          |
+| Admin            | `ADMIN_EMAIL`                          | the password you hashed |
 
 ## Scripts
 
-| Script | Purpose |
-|---|---|
-| `npm run dev` | nodemon on `src/server.js` |
-| `npm start` | run the server |
-| `npm test` / `npm run test:coverage` | Vitest + supertest, optionally with v8 coverage |
-| `npm run lint` | ESLint flat config, zero warnings allowed |
-| `npm run seed` | demo data |
-| `npm run hash-password -- <password>` | bcrypt hash for `ADMIN_PASSWORD_HASH` |
+| Script                                | Purpose                                         |
+| ------------------------------------- | ----------------------------------------------- |
+| `npm run dev`                         | nodemon on `src/server.js`                      |
+| `npm start`                           | run the server                                  |
+| `npm test` / `npm run test:coverage`  | Vitest + supertest, optionally with v8 coverage |
+| `npm run lint`                        | ESLint flat config, zero warnings allowed       |
+| `npm run seed`                        | demo data                                       |
+| `npm run hash-password -- <password>` | bcrypt hash for `ADMIN_PASSWORD_HASH`           |
 
 Tests need a real MongoDB. By default `mongodb-memory-server` downloads and starts one. To use your own
 (for example `docker run -d --rm -p 27018:27017 mongo:7`), set `MONGODB_URI_TEST=mongodb://127.0.0.1:27018`;
@@ -54,17 +54,17 @@ every test file gets its own throwaway database.
 
 See `.env.example` for the full, commented list. The important ones:
 
-| Variable | Meaning |
-|---|---|
-| `MONGODB_URI`, `PORT`, `NODE_ENV` | basics |
-| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | required, at least 16 characters; the refresh secret also keys the OTP hash |
-| `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL_DAYS` | token lifetimes (15m / 7 days) |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH` | the single admin account (bcrypt hash) |
-| `CORS_ORIGINS` | comma-separated allow-list of browser origins |
+| Variable                                                                                                  | Meaning                                                                     |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `MONGODB_URI`, `PORT`, `NODE_ENV`                                                                         | basics                                                                      |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`                                                                 | required, at least 16 characters; the refresh secret also keys the OTP hash |
+| `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL_DAYS`                                                              | token lifetimes (15m / 7 days)                                              |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`                                                                      | the single admin account (bcrypt hash)                                      |
+| `CORS_ORIGINS`                                                                                            | comma-separated allow-list of browser origins                               |
 | `CLINIC_TIMEZONE`, `CURRENCY`, `CANCELLATION_CUTOFF_HOURS`, `BOOKING_WINDOW_DAYS`, `DEFAULT_SLOT_MINUTES` | clinic defaults; the admin settings document overrides all but the timezone |
-| `PAYMENTS_MODE`, `RAZORPAY_*` | `mock` or `razorpay` (keys required in that mode) |
-| `REMINDERS_ENABLED`, `REMINDER_INTERVAL_MINUTES`, `REMINDER_LEAD_HOURS` | background job |
-| `AUTH_RATE_LIMIT_*`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES` | per-IP limit on `/api/auth/*` and per-account lockout |
+| `PAYMENTS_MODE`, `RAZORPAY_*`                                                                             | `mock` or `razorpay` (keys required in that mode)                           |
+| `REMINDERS_ENABLED`, `REMINDER_INTERVAL_MINUTES`, `REMINDER_LEAD_HOURS`                                   | background job                                                              |
+| `AUTH_RATE_LIMIT_*`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES`                                        | per-IP limit on `/api/auth/*` and per-account lockout                       |
 
 ## Layout
 
@@ -89,39 +89,39 @@ Every response uses the `{ success, data }` / `{ success: false, error }` envelo
 
 ## Slots and booking
 
-* **Time zones.** `utils/time.js` converts between wall-clock time in an IANA zone and UTC instants using
+- **Time zones.** `utils/time.js` converts between wall-clock time in an IANA zone and UTC instants using
   `Intl.DateTimeFormat` only. A wall time that does not exist (spring-forward gap) yields no slot; one that
   occurs twice (fall-back) resolves to the first occurrence. Unit tests cover `Asia/Kathmandu` (+05:45) and the
   `America/New_York` transitions on 2026-03-08 and 2026-11-01.
-* **Engine.** `modules/scheduling/engine.js` is pure: weekly schedule, breaks, leave days, existing bookings,
+- **Engine.** `modules/scheduling/engine.js` is pure: weekly schedule, breaks, leave days, existing bookings,
   `now`, the booking window and the 30-minute lead produce the slot list. `scheduling.service.js` loads the
   inputs. Appointments store `date`/`time` (clinic wall clock) plus `startsAt`/`endsAt` (UTC).
-* **No double booking.** An appointment that holds a slot (`booked`, `completed`) carries
+- **No double booking.** An appointment that holds a slot (`booked`, `completed`) carries
   `activeSlotKey = doctor:date:time` and `activePatientKey = patient:startsAt`, each under a partial unique
   index. Cancelling or marking no-show `$unset`s both keys. Concurrent requests race on the index: one wins,
   the rest get `409 SLOT_TAKEN` (or `409 CONFLICT` when the patient already holds that time). Rescheduling
   swaps both keys in one atomic `findOneAndUpdate`, so it cannot lose a race either.
-* **State machine.** `appointments/stateMachine.js` holds the transition table plus per-action checks (role,
+- **State machine.** `appointments/stateMachine.js` holds the transition table plus per-action checks (role,
   ownership, cancellation cutoff, 2 reschedules, completion from 15 minutes before the start, no-show after it).
   The same checks produce the `actions` flags. Looking up an appointment you do not own is a `404`.
   Cancelling a paid appointment sets `refund_pending`; the mock provider (or a Razorpay `processed` refund)
   completes it immediately, otherwise the `refund.processed` webhook does, and the background job retries refunds
   whose provider call failed.
-* **Reminders.** `notifications/reminderJob.js` claims due appointments with
+- **Reminders.** `notifications/reminderJob.js` claims due appointments with
   `findOneAndUpdate({ reminderSentAt: null, ... })`, so each reminder is sent at most once across instances.
   `runOnce(now)` is exported for tests.
 
 ## Tokens
 
-* Access token: HS256 JWT with only `sub` and `role`, 15 minutes by default. `authenticate` also loads the
+- Access token: HS256 JWT with only `sub` and `role`, 15 minutes by default. `authenticate` also loads the
   account, so blocking a patient or deactivating a doctor takes effect immediately (`403 ACCOUNT_BLOCKED`).
   Expired tokens answer `401 TOKEN_EXPIRED`; everything else is `401 UNAUTHORIZED`.
-* Refresh token: opaque 48-byte random string, stored as a SHA-256 hash, rotated on every use with an atomic
+- Refresh token: opaque 48-byte random string, stored as a SHA-256 hash, rotated on every use with an atomic
   `findOneAndUpdate`. Presenting an already-rotated token revokes every refresh token of that account.
   Blocking, deactivating, logging out and password resets revoke tokens too.
-* OTPs and password-reset tokens are stored hashed, are single use, and expire (10 and 30 minutes).
+- OTPs and password-reset tokens are stored hashed, are single use, and expire (10 and 30 minutes).
   OTPs come from `crypto.randomInt`, allow 5 attempts and a 60-second resend cooldown.
-* Passwords use bcrypt; signature checks use `crypto.timingSafeEqual`.
+- Passwords use bcrypt; signature checks use `crypto.timingSafeEqual`.
 
 ## Payments
 
@@ -131,6 +131,6 @@ HMAC-SHA256 signature over the raw body. All webhook transitions are conditional
 
 ## Notes
 
-* The refund retry sweep runs inside the reminder job, so `REMINDERS_ENABLED=false` also disables it.
-* `POST /appointments` honours an optional `Idempotency-Key` header (8 to 64 characters, kept for 24 hours).
-* Audit logs are kept for 400 days and notifications for 120 days (TTL indexes).
+- The refund retry sweep runs inside the reminder job, so `REMINDERS_ENABLED=false` also disables it.
+- `POST /appointments` honours an optional `Idempotency-Key` header (8 to 64 characters, kept for 24 hours).
+- Audit logs are kept for 400 days and notifications for 120 days (TTL indexes).
