@@ -48,6 +48,7 @@ export function createContainer({ config, logger, overrides = {} }) {
     otp,
     principals,
     loginGuard,
+    audit,
     mailer,
     googleVerifier,
     logger,

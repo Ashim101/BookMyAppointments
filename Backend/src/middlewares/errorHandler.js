@@ -30,7 +30,10 @@ export const createErrorHandler =
       return res.destroy();
     }
     const known = normalize(err);
-    if (known) return fail(res, known.status, known.code, known.message, known.details);
+    if (known) {
+      if (known.retryAfter) res.setHeader('Retry-After', String(known.retryAfter));
+      return fail(res, known.status, known.code, known.message, known.details);
+    }
     logger.error({ err, requestId: req.id }, 'unhandled error');
     return fail(res, 500, 'INTERNAL', 'Something went wrong. Please try again later.');
   };

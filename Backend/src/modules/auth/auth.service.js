@@ -17,6 +17,7 @@ export function createAuthService({
   otp,
   principals,
   loginGuard,
+  audit,
   mailer,
   googleVerifier,
   logger,
@@ -70,6 +71,13 @@ export function createAuthService({
     return principals.admin;
   }
 
+  const auditAdminLogin = (action, meta) =>
+    audit.record({
+      actor: { role: 'admin', id: principals.admin.id, name: principals.admin.name },
+      action,
+      ip: meta.ip,
+    });
+
   async function loginAccount(role, email, password) {
     const account = await MODELS[role].findOne({ email }).select('+passwordHash');
     if (!(await checkPassword(password, account?.passwordHash))) throw invalidCredentials();
@@ -83,10 +91,14 @@ export function createAuthService({
       principal =
         role === 'admin' ? await loginAdmin(email, password) : await loginAccount(role, email, password);
     } catch (err) {
-      if (err.code === 'INVALID_CREDENTIALS') await loginGuard.recordFailure(role, email);
+      if (err.code === 'INVALID_CREDENTIALS') {
+        await loginGuard.recordFailure(role, email);
+        if (role === 'admin') await auditAdminLogin('admin.login_failed', meta);
+      }
       throw err;
     }
     await loginGuard.recordSuccess(role, email);
+    if (role === 'admin') await auditAdminLogin('admin.login', meta);
     return startSession(principal, meta);
   }
 

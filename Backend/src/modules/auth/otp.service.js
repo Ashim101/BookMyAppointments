@@ -34,10 +34,12 @@ export function createOtpService({ config, clock, mailer }) {
       );
     } catch (err) {
       if (err.code !== 11000) throw err;
+      const previous = await Otp.findOne({ email }).select('lastSentAt').lean();
+      const waitMs = previous ? previous.lastSentAt.getTime() + OTP_RESEND_SECONDS * 1000 - now.getTime() : 0;
       throw new AppError(
         'OTP_COOLDOWN',
         `Please wait ${OTP_RESEND_SECONDS} seconds before requesting another code`,
-      );
+      ).withRetryAfter(waitMs > 0 ? waitMs / 1000 : OTP_RESEND_SECONDS);
     }
     await mailer.send({ to: email, ...otpEmail(code, OTP_TTL_SECONDS / 60) });
     return { expiresInSeconds: OTP_TTL_SECONDS, resendAfterSeconds: OTP_RESEND_SECONDS };
