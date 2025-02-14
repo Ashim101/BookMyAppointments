@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { AppError, unauthorized } from '../../utils/AppError.js';
+import { unauthorized } from '../../utils/AppError.js';
 import { randomToken, sha256 } from '../../utils/crypto.js';
 import { RefreshToken } from './auth.models.js';
 
@@ -43,12 +43,14 @@ export function createTokenService({ config, clock }) {
     );
     if (record) return { userId: record.userId, role: record.role, family: record.family };
 
+    // The owner is attached so callers can report a blocked account instead of a generic failure.
     const stale = await RefreshToken.findOne({ tokenHash });
+    const failure = (message) => Object.assign(unauthorized(message), { owner: stale && { userId: stale.userId, role: stale.role } });
     if (stale?.revokedAt) {
       await revokeAll(stale.userId, stale.role);
-      throw new AppError('UNAUTHORIZED', 'Refresh token was already used. Please sign in again.');
+      throw failure('Refresh token was already used. Please sign in again.');
     }
-    throw unauthorized('Invalid or expired refresh token');
+    throw failure('Invalid or expired refresh token');
   }
 
   const revoke = (refreshToken) =>
