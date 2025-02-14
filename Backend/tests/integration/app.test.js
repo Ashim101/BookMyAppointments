@@ -4,7 +4,9 @@ import { startHarness } from '../helpers/harness.js';
 describe('application shell', () => {
   let h;
   beforeAll(async () => {
-    h = await startHarness({ env: { REMINDERS_ENABLED: 'true', JSON_BODY_LIMIT: '2kb', CORS_ORIGINS: 'http://localhost:5173' } });
+    h = await startHarness({
+      env: { REMINDERS_ENABLED: 'true', JSON_BODY_LIMIT: '2kb', CORS_ORIGINS: 'http://localhost:5173' },
+    });
   });
   afterAll(() => h.stop());
 
@@ -13,21 +15,34 @@ describe('application shell', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       success: true,
-      data: { status: 'ok', db: 'up', uptime: expect.any(Number), reminderJob: { running: false, lastRunAt: null } },
+      data: {
+        status: 'ok',
+        db: 'up',
+        uptime: expect.any(Number),
+        reminderJob: { running: false, lastRunAt: null },
+      },
     });
   });
 
   it('answers unknown routes with the error envelope', async () => {
     const res = await h.request.get('/api/does-not-exist');
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ success: false, error: { code: 'NOT_FOUND', message: 'Route GET /api/does-not-exist not found' } });
+    expect(res.body).toEqual({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Route GET /api/does-not-exist not found' },
+    });
   });
 
   it('answers malformed and oversized JSON with BAD_REQUEST', async () => {
-    const malformed = await h.request.post('/api/auth/login').set('Content-Type', 'application/json').send('{"email": ');
+    const malformed = await h.request
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"email": ');
     expect(malformed.status).toBe(400);
     expect(malformed.body.error.code).toBe('BAD_REQUEST');
-    const big = await h.request.post('/api/auth/login').send({ email: 'a@example.com', password: 'x'.repeat(5000), role: 'patient' });
+    const big = await h.request
+      .post('/api/auth/login')
+      .send({ email: 'a@example.com', password: 'x'.repeat(5000), role: 'patient' });
     expect(big.status).toBe(400);
     expect(big.body.error.code).toBe('BAD_REQUEST');
   });
@@ -90,7 +105,10 @@ describe('application shell', () => {
 describe('patient profile', () => {
   let h;
   let patient;
-  const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
+  const PNG = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(64),
+  ]);
 
   beforeAll(async () => {
     h = await startHarness();
@@ -146,18 +164,33 @@ describe('patient profile', () => {
   });
 
   it('validates fields and files', async () => {
-    for (const fields of [{ name: 'A' }, { gender: 'robot' }, { dob: '1990-02-31' }, { phone: 'call me' }, { address: '{bad json' }]) {
+    for (const fields of [
+      { name: 'A' },
+      { gender: 'robot' },
+      { dob: '1990-02-31' },
+      { phone: 'call me' },
+      { address: '{bad json' },
+    ]) {
       const req = patch();
       for (const [key, value] of Object.entries(fields)) req.field(key, value);
       const res = await req;
       expect(res.status, JSON.stringify(fields)).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     }
-    const wrongType = await patch().attach('image', Buffer.from('plain text'), { filename: 'a.txt', contentType: 'text/plain' });
+    const wrongType = await patch().attach('image', Buffer.from('plain text'), {
+      filename: 'a.txt',
+      contentType: 'text/plain',
+    });
     expect(wrongType.status).toBe(400);
-    const spoofed = await patch().attach('image', Buffer.from('not really a png'), { filename: 'a.png', contentType: 'image/png' });
+    const spoofed = await patch().attach('image', Buffer.from('not really a png'), {
+      filename: 'a.png',
+      contentType: 'image/png',
+    });
     expect(spoofed.status).toBe(400);
-    const tooBig = await patch().attach('image', Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]), { filename: 'a.png', contentType: 'image/png' });
+    const tooBig = await patch().attach('image', Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]), {
+      filename: 'a.png',
+      contentType: 'image/png',
+    });
     expect(tooBig.status).toBe(400);
   });
 

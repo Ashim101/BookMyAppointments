@@ -26,7 +26,9 @@ export function createDoctorSelfService({ settings, clock, doctors, appointments
 
   async function listLeaves(user) {
     const { timezone } = await settings.get();
-    const leaves = await Leave.find({ doctor: user.id, date: { $gte: todayIn(clock.now(), timezone) } }).sort({ date: 1 });
+    const leaves = await Leave.find({ doctor: user.id, date: { $gte: todayIn(clock.now(), timezone) } }).sort(
+      { date: 1 },
+    );
     return leaves.map(toLeaveDto);
   }
 
@@ -36,9 +38,11 @@ export function createDoctorSelfService({ settings, clock, doctors, appointments
 
     const affected = await appointments.countBookedOn(user.id, date);
     if (affected > 0 && !cancelAppointments) {
-      throw new AppError('CONFLICT', `${affected} booked appointment(s) exist on this day. Cancel them or send cancelAppointments: true.`, [
-        { path: 'date', message: `${affected} appointment(s) affected` },
-      ]);
+      throw new AppError(
+        'CONFLICT',
+        `${affected} booked appointment(s) exist on this day. Cancel them or send cancelAppointments: true.`,
+        [{ path: 'date', message: `${affected} appointment(s) affected` }],
+      );
     }
     let leave;
     try {
@@ -61,7 +65,12 @@ export function createDoctorSelfService({ settings, clock, doctors, appointments
   async function earningsByMonth(doctorId, since, timezone) {
     const rows = await Appointment.aggregate([
       { $match: { doctor: doctorId, paymentStatus: 'paid', startsAt: { $gte: since } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$startsAt', timezone } }, amount: { $sum: '$fee' } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$startsAt', timezone } },
+          amount: { $sum: '$fee' },
+        },
+      },
     ]);
     return new Map(rows.map((row) => [row._id, row.amount]));
   }
@@ -76,28 +85,38 @@ export function createDoctorSelfService({ settings, clock, doctors, appointments
     const firstMonth = addMonths(thisMonth, -(SERIES_MONTHS - 1));
     const monthStart = new Date(startOfZonedDay(thisMonth, timezone));
 
-    const [statusRows, upcoming, todayCount, patientRows, earnings, upcomingList, byMonth] = await Promise.all([
-      Appointment.aggregate([{ $match: { doctor: doctorId } }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
-      Appointment.countDocuments({ doctor: doctorId, status: 'booked', startsAt: { $gt: now } }),
-      Appointment.countDocuments({ doctor: doctorId, date: today, status: { $in: ['booked', 'completed'] } }),
-      Appointment.aggregate([
-        { $match: { doctor: doctorId, status: { $in: ['booked', 'completed'] } } },
-        { $group: { _id: '$patient' } },
-        { $count: 'patients' },
-      ]),
-      Appointment.aggregate([
-        { $match: { doctor: doctorId, paymentStatus: 'paid' } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$fee' },
-            thisMonth: { $sum: { $cond: [{ $gte: ['$startsAt', monthStart] }, '$fee', 0] } },
+    const [statusRows, upcoming, todayCount, patientRows, earnings, upcomingList, byMonth] =
+      await Promise.all([
+        Appointment.aggregate([
+          { $match: { doctor: doctorId } },
+          { $group: { _id: '$status', count: { $sum: 1 } } },
+        ]),
+        Appointment.countDocuments({ doctor: doctorId, status: 'booked', startsAt: { $gt: now } }),
+        Appointment.countDocuments({
+          doctor: doctorId,
+          date: today,
+          status: { $in: ['booked', 'completed'] },
+        }),
+        Appointment.aggregate([
+          { $match: { doctor: doctorId, status: { $in: ['booked', 'completed'] } } },
+          { $group: { _id: '$patient' } },
+          { $count: 'patients' },
+        ]),
+        Appointment.aggregate([
+          { $match: { doctor: doctorId, paymentStatus: 'paid' } },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$fee' },
+              thisMonth: { $sum: { $cond: [{ $gte: ['$startsAt', monthStart] }, '$fee', 0] } },
+            },
           },
-        },
-      ]),
-      Appointment.find({ doctor: doctorId, status: 'booked', startsAt: { $gte: now } }).sort({ startsAt: 1 }).limit(5),
-      earningsByMonth(doctorId, new Date(startOfZonedDay(firstMonth, timezone)), timezone),
-    ]);
+        ]),
+        Appointment.find({ doctor: doctorId, status: 'booked', startsAt: { $gte: now } })
+          .sort({ startsAt: 1 })
+          .limit(5),
+        earningsByMonth(doctorId, new Date(startOfZonedDay(firstMonth, timezone)), timezone),
+      ]);
 
     const counts = Object.fromEntries(statusRows.map((row) => [row._id, row.count]));
     return {
@@ -110,7 +129,10 @@ export function createDoctorSelfService({ settings, clock, doctors, appointments
         cancelled: counts.cancelled ?? 0,
         noShow: counts.no_show ?? 0,
       },
-      rating: { average: doctor.rating.count ? Math.round(doctor.rating.average * 10) / 10 : 0, count: doctor.rating.count },
+      rating: {
+        average: doctor.rating.count ? Math.round(doctor.rating.average * 10) / 10 : 0,
+        count: doctor.rating.count,
+      },
       next: await appointments.serializeMany(upcomingList, user),
       earningsSeries: Array.from({ length: SERIES_MONTHS }, (_, i) => {
         const period = addMonths(firstMonth, i).slice(0, 7);
@@ -121,5 +143,15 @@ export function createDoctorSelfService({ settings, clock, doctors, appointments
 
   const patientHistory = (user, patientId) => appointments.listForDoctorPatient(user, patientId);
 
-  return { getProfile, updateProfile, getSchedule, setSchedule, listLeaves, addLeave, removeLeave, dashboard, patientHistory };
+  return {
+    getProfile,
+    updateProfile,
+    getSchedule,
+    setSchedule,
+    listLeaves,
+    addLeave,
+    removeLeave,
+    dashboard,
+    patientHistory,
+  };
 }

@@ -15,6 +15,11 @@ export function createPatientRoutes({ controller, authenticate }) {
 export function createPatientAdminRoutes({ controller, audit }) {
   const router = Router();
   router.get('/', validate(listPatientsSchema), controller.list);
-  router.patch('/:id/block', validate(blockSchema), audit('patient.block', { targetType: 'patient' }), controller.setBlocked);
+  router.patch(
+    '/:id/block',
+    validate(blockSchema),
+    audit('patient.block', { targetType: 'patient' }),
+    controller.setBlocked,
+  );
   return router;
 }

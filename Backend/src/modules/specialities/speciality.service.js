@@ -13,7 +13,10 @@ export function createSpecialityService() {
   async function list() {
     const [specialities, counts] = await Promise.all([
       Speciality.find().sort({ name: 1 }).collation({ locale: 'en', strength: 2 }),
-      Doctor.aggregate([{ $match: { active: true } }, { $group: { _id: '$speciality', count: { $sum: 1 } } }]),
+      Doctor.aggregate([
+        { $match: { active: true } },
+        { $group: { _id: '$speciality', count: { $sum: 1 } } },
+      ]),
     ]);
     const bySlug = new Map(counts.map((row) => [row._id, row.count]));
     return specialities.map((s) => ({
@@ -29,7 +32,10 @@ export function createSpecialityService() {
 
   async function create({ name, description }) {
     const slug = slugify(name);
-    if (!slug) throw new AppError('VALIDATION_ERROR', 'Name must contain letters or digits', [{ path: 'name', message: 'Invalid name' }]);
+    if (!slug)
+      throw new AppError('VALIDATION_ERROR', 'Name must contain letters or digits', [
+        { path: 'name', message: 'Invalid name' },
+      ]);
     try {
       const created = await Speciality.create({ slug, name, description });
       return await findOne(created._id);

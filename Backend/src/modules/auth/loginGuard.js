@@ -16,7 +16,10 @@ export function createLoginGuard({ config, clock }) {
     const remaining = record?.lockedUntil ? record.lockedUntil.getTime() - clock.now() : 0;
     if (remaining > 0) {
       const minutes = Math.ceil(remaining / 60_000);
-      throw new AppError('RATE_LIMITED', `Too many failed sign-in attempts. Try again in ${minutes} minute(s).`);
+      throw new AppError(
+        'RATE_LIMITED',
+        `Too many failed sign-in attempts. Try again in ${minutes} minute(s).`,
+      );
     }
   }
 

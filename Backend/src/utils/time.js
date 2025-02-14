@@ -86,7 +86,14 @@ export function zoneOffsetMinutes(instant, zone) {
   const ms = instant instanceof Date ? instant.getTime() : instant;
   const parts = {};
   for (const { type, value } of formatterFor(zone).formatToParts(ms)) parts[type] = value;
-  const asUtc = Date.UTC(parts.year, Number(parts.month) - 1, parts.day, parts.hour, parts.minute, parts.second);
+  const asUtc = Date.UTC(
+    parts.year,
+    Number(parts.month) - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+  );
   return Math.round((asUtc - Math.floor(ms / 1000) * 1000) / MS_MINUTE);
 }
 

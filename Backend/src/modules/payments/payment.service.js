@@ -22,7 +22,13 @@ export function createPaymentService({ provider, appointments, notifications, re
       amount: appointment.fee,
       currency: appointment.currency,
     });
-    return { mode: provider.mode, orderId, amount: appointment.fee, currency: appointment.currency, keyId: provider.keyId };
+    return {
+      mode: provider.mode,
+      orderId,
+      amount: appointment.fee,
+      currency: appointment.currency,
+      keyId: provider.keyId,
+    };
   }
 
   const markPaid = (appointmentId, orderId, paymentId) =>
@@ -56,9 +62,13 @@ export function createPaymentService({ provider, appointments, notifications, re
 
     const order = await Payment.findOne({ orderId, appointment: appointment._id, status: 'created' });
     if (!order) throw invalid('Unknown or already used payment order');
-    if (!provider.verifyPayment({ orderId, paymentId, signature })) throw invalid('Payment signature could not be verified');
+    if (!provider.verifyPayment({ orderId, paymentId, signature }))
+      throw invalid('Payment signature could not be verified');
 
-    const claimed = await Payment.findOneAndUpdate({ _id: order._id, status: 'created' }, { $set: { status: 'paid', paymentId } });
+    const claimed = await Payment.findOneAndUpdate(
+      { _id: order._id, status: 'created' },
+      { $set: { status: 'paid', paymentId } },
+    );
     if (!claimed) throw invalid('This payment order was already used');
     const paid = await markPaid(appointment._id, orderId, paymentId);
     if (!paid) throw new AppError('INVALID_STATE', 'The appointment can no longer be paid');
@@ -69,7 +79,10 @@ export function createPaymentService({ provider, appointments, notifications, re
 
   /** `payment.captured`: idempotent because only a `created` payment can be claimed. */
   async function onCaptured(orderId, paymentId) {
-    const payment = await Payment.findOneAndUpdate({ orderId, status: 'created' }, { $set: { status: 'paid', paymentId } });
+    const payment = await Payment.findOneAndUpdate(
+      { orderId, status: 'created' },
+      { $set: { status: 'paid', paymentId } },
+    );
     if (!payment) return;
     const paid = await markPaid(payment.appointment, orderId, paymentId);
     if (paid) return void (await notifyPaid(paid));
@@ -77,7 +90,9 @@ export function createPaymentService({ provider, appointments, notifications, re
     // Money arrived for an appointment that was cancelled in the meantime: refund it.
     const orphan = await Appointment.findOneAndUpdate(
       { _id: payment.appointment, status: { $in: ['cancelled', 'no_show'] }, paymentStatus: 'unpaid' },
-      { $set: { paymentStatus: 'refund_pending', 'payment.orderId': orderId, 'payment.paymentId': paymentId } },
+      {
+        $set: { paymentStatus: 'refund_pending', 'payment.orderId': orderId, 'payment.paymentId': paymentId },
+      },
       { returnDocument: 'after' },
     );
     if (orphan) await refunds.settle(orphan);
@@ -98,9 +113,15 @@ export function createPaymentService({ provider, appointments, notifications, re
     }
     const entity = (kind) => event.payload?.[kind]?.entity ?? {};
 
-    if (event.event === 'payment.captured') await onCaptured(entity('payment').order_id, entity('payment').id);
-    else if (event.event === 'payment.failed') await Payment.updateOne({ orderId: entity('payment').order_id, status: 'created' }, { $set: { status: 'failed' } });
-    else if (event.event === 'refund.processed') await onRefunded(entity('refund').payment_id, entity('refund').id);
+    if (event.event === 'payment.captured')
+      await onCaptured(entity('payment').order_id, entity('payment').id);
+    else if (event.event === 'payment.failed')
+      await Payment.updateOne(
+        { orderId: entity('payment').order_id, status: 'created' },
+        { $set: { status: 'failed' } },
+      );
+    else if (event.event === 'refund.processed')
+      await onRefunded(entity('refund').payment_id, entity('refund').id);
     return { received: true };
   }
 

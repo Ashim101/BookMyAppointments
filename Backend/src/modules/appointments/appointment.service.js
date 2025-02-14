@@ -25,11 +25,20 @@ function translateDuplicate(err) {
   return new AppError('SLOT_TAKEN', 'That slot has just been taken. Please choose another.');
 }
 
-export function createAppointmentService({ settings, scheduling, notifications, refunds, mailer, clock, logger }) {
+export function createAppointmentService({
+  settings,
+  scheduling,
+  notifications,
+  refunds,
+  mailer,
+  clock,
+  logger,
+}) {
   const nowMs = () => clock.now();
 
   /** Emails never block or fail the action that triggered them. */
-  const email = (to, template) => mailer.send({ to, ...template }).catch((err) => logger.warn({ err }, 'appointment email failed'));
+  const email = (to, template) =>
+    mailer.send({ to, ...template }).catch((err) => logger.warn({ err }, 'appointment email failed'));
 
   async function serialize(appointment, user, settingsValue) {
     const ctx = { appointment, user, now: nowMs(), settings: settingsValue ?? (await settings.get()) };
@@ -55,10 +64,14 @@ export function createAppointmentService({ settings, scheduling, notifications, 
   }
 
   async function book(user, { doctorId, date, time, reason = '' }) {
-    const [doctor, patient] = await Promise.all([Doctor.findOne({ _id: doctorId, active: true }), Patient.findById(user.id)]);
+    const [doctor, patient] = await Promise.all([
+      Doctor.findOne({ _id: doctorId, active: true }),
+      Patient.findById(user.id),
+    ]);
     if (!doctor) throw notFound('Doctor');
     if (!patient || patient.blocked) throw new AppError('ACCOUNT_BLOCKED', 'This account has been disabled');
-    if (!doctor.available) throw new AppError('SLOT_UNAVAILABLE', 'This doctor is not accepting bookings right now');
+    if (!doctor.available)
+      throw new AppError('SLOT_UNAVAILABLE', 'This doctor is not accepting bookings right now');
 
     const slot = await scheduling.offerSlot(doctor, date, time);
     if (!slot) throw new AppError('SLOT_UNAVAILABLE', 'That slot is not available');
@@ -68,7 +81,14 @@ export function createAppointmentService({ settings, scheduling, notifications, 
       const appointment = await Appointment.create({
         patient: patient._id,
         doctor: doctor._id,
-        patientInfo: { name: patient.name, image: patient.image, email: patient.email, phone: patient.phone, gender: patient.gender, dob: patient.dob },
+        patientInfo: {
+          name: patient.name,
+          image: patient.image,
+          email: patient.email,
+          phone: patient.phone,
+          gender: patient.gender,
+          dob: patient.dob,
+        },
         doctorInfo: {
           name: doctor.name,
           image: doctor.image,
@@ -96,7 +116,10 @@ export function createAppointmentService({ settings, scheduling, notifications, 
           link: `/appointments/${appointment._id}`,
         },
       );
-      await email(patient.email, bookingEmail({ doctorName: doctor.name, date, time, timezone: slot.timezone }));
+      await email(
+        patient.email,
+        bookingEmail({ doctorName: doctor.name, date, time, timezone: slot.timezone }),
+      );
       return serialize(appointment, user);
     } catch (err) {
       throw translateDuplicate(err);
@@ -134,7 +157,8 @@ export function createAppointmentService({ settings, scheduling, notifications, 
     });
   }
 
-  const exportCursor = (user, query) => Appointment.find(buildFilter(user, query)).sort(sortFor(query.scope)).cursor();
+  const exportCursor = (user, query) =>
+    Appointment.find(buildFilter(user, query)).sort(sortFor(query.scope)).cursor();
 
   async function get(user, id) {
     return serialize(await findFor(user, id), user);
@@ -149,13 +173,20 @@ export function createAppointmentService({ settings, scheduling, notifications, 
         $set: {
           status: 'cancelled',
           cancellation: { by, reason, at: new Date(nowMs()) },
-          ...(refundable && { paymentStatus: 'refund_pending', 'payment.refundAttemptAt': new Date(nowMs()) }),
+          ...(refundable && {
+            paymentStatus: 'refund_pending',
+            'payment.refundAttemptAt': new Date(nowMs()),
+          }),
         },
         $unset: RELEASE_KEYS,
       },
       { returnDocument: 'after' },
     );
-    if (!cancelled) throw new AppError('INVALID_STATE', 'The appointment was changed by someone else. Please reload and try again.');
+    if (!cancelled)
+      throw new AppError(
+        'INVALID_STATE',
+        'The appointment was changed by someone else. Please reload and try again.',
+      );
     return refundable ? refunds.settle(cancelled) : cancelled;
   }
 
@@ -165,7 +196,16 @@ export function createAppointmentService({ settings, scheduling, notifications, 
     if (by !== 'patient') recipients.push({ id: appointment.patient, role: 'patient' });
     if (by !== 'doctor') recipients.push({ id: appointment.doctor, role: 'doctor' });
     if (by !== 'patient') {
-      await email(appointment.patientInfo.email, cancellationEmail({ doctorName: appointment.doctorInfo.name, date: appointment.date, time: appointment.time, by, reason }));
+      await email(
+        appointment.patientInfo.email,
+        cancellationEmail({
+          doctorName: appointment.doctorInfo.name,
+          date: appointment.date,
+          time: appointment.time,
+          by,
+          reason,
+        }),
+      );
     }
     await Promise.all(
       recipients.map((recipient) =>
@@ -189,7 +229,12 @@ export function createAppointmentService({ settings, scheduling, notifications, 
 
   /** Cancels a doctor's future bookings on a leave day. Returns how many were cancelled. */
   async function cancelForLeave(doctorId, date, reason) {
-    const affected = await Appointment.find({ doctor: doctorId, date, status: 'booked', startsAt: { $gt: new Date(nowMs()) } });
+    const affected = await Appointment.find({
+      doctor: doctorId,
+      date,
+      status: 'booked',
+      startsAt: { $gt: new Date(nowMs()) },
+    });
     for (const appointment of affected) {
       const cancelled = await applyCancellation(appointment, 'doctor', reason);
       await notifyCancellation(cancelled, 'doctor', reason);
@@ -198,7 +243,12 @@ export function createAppointmentService({ settings, scheduling, notifications, 
   }
 
   const countBookedOn = (doctorId, date) =>
-    Appointment.countDocuments({ doctor: doctorId, date, status: 'booked', startsAt: { $gt: new Date(nowMs()) } });
+    Appointment.countDocuments({
+      doctor: doctorId,
+      date,
+      status: 'booked',
+      startsAt: { $gt: new Date(nowMs()) },
+    });
 
   async function reschedule(user, id, { date, time }) {
     const appointment = await findFor(user, id);
@@ -208,7 +258,8 @@ export function createAppointmentService({ settings, scheduling, notifications, 
       throw new AppError('SLOT_UNAVAILABLE', 'Choose a different slot than the current one');
     }
     const doctor = await Doctor.findOne({ _id: appointment.doctor, active: true });
-    if (!doctor || !doctor.available) throw new AppError('SLOT_UNAVAILABLE', 'This doctor is not accepting bookings right now');
+    if (!doctor || !doctor.available)
+      throw new AppError('SLOT_UNAVAILABLE', 'This doctor is not accepting bookings right now');
     const slot = await scheduling.offerSlot(doctor, date, time);
     if (!slot) throw new AppError('SLOT_UNAVAILABLE', 'That slot is not available');
 
@@ -230,7 +281,11 @@ export function createAppointmentService({ settings, scheduling, notifications, 
         },
         { returnDocument: 'after' },
       );
-      if (!moved) throw new AppError('INVALID_STATE', 'The appointment was changed by someone else. Please reload and try again.');
+      if (!moved)
+        throw new AppError(
+          'INVALID_STATE',
+          'The appointment was changed by someone else. Please reload and try again.',
+        );
       await notifications.notify(
         { id: moved.doctor, role: 'doctor' },
         {
@@ -281,7 +336,9 @@ export function createAppointmentService({ settings, scheduling, notifications, 
   }
 
   async function listForDoctorPatient(doctor, patientId) {
-    const appointments = await Appointment.find({ doctor: doctor.id, patient: patientId }).sort({ startsAt: -1 });
+    const appointments = await Appointment.find({ doctor: doctor.id, patient: patientId }).sort({
+      startsAt: -1,
+    });
     return serializeMany(appointments, doctor);
   }
 

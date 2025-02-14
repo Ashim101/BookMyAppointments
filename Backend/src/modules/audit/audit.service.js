@@ -14,7 +14,13 @@ const toDto = (log) => ({
 export function createAuditService({ logger }) {
   async function record({ actor, action, target = null, meta = {}, ip = '' }) {
     try {
-      await AuditLog.create({ actor: { role: actor.role, id: actor.id, name: actor.name ?? '' }, action, target, meta, ip });
+      await AuditLog.create({
+        actor: { role: actor.role, id: actor.id, name: actor.name ?? '' },
+        action,
+        target,
+        meta,
+        ip,
+      });
     } catch (err) {
       logger.error({ err, action }, 'failed to write audit log');
     }

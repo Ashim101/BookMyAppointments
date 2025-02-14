@@ -69,18 +69,51 @@ describe('appointment CSV export', () => {
     expect(res.headers['transfer-encoding']).toBe('chunked');
 
     const rows = parseCsv(res.text);
-    expect(rows[0]).toEqual(['id', 'date', 'time', 'patient', 'patientEmail', 'doctor', 'speciality', 'status', 'paymentStatus', 'fee', 'currency', 'createdAt']);
+    expect(rows[0]).toEqual([
+      'id',
+      'date',
+      'time',
+      'patient',
+      'patientEmail',
+      'doctor',
+      'speciality',
+      'status',
+      'paymentStatus',
+      'fee',
+      'currency',
+      'createdAt',
+    ]);
     expect(rows).toHaveLength(3);
     const completed = rows.find((r) => r[3] === 'Patient 1');
-    expect(completed.slice(1, 11)).toEqual(['2026-03-05', '10:00', 'Patient 1', 'p1@example.com', 'Dr. Test', 'General physician', 'completed', 'paid', '500', 'INR']);
+    expect(completed.slice(1, 11)).toEqual([
+      '2026-03-05',
+      '10:00',
+      'Patient 1',
+      'p1@example.com',
+      'Dr. Test',
+      'General physician',
+      'completed',
+      'paid',
+      '500',
+      'INR',
+    ]);
     expect(completed[11]).toMatch(/^\d{4}-\d\d-\d\dT.*Z$/);
     expect(completed[0]).toMatch(/^[0-9a-f]{24}$/);
   });
 
   it('escapes quotes, commas, newlines and formula prefixes', async () => {
     await Appointment.deleteMany({});
-    const nasty = ['=HYPERLINK("http://evil.example","click")', '+1+1', '-2+3', '@SUM(A1)', 'Smith, John', 'Line one\nLine two', 'He said "hi"'];
-    for (const [i, name] of nasty.entries()) await insert(i + 10, { patientInfo: { name, email: 'x@example.com' } });
+    const nasty = [
+      '=HYPERLINK("http://evil.example","click")',
+      '+1+1',
+      '-2+3',
+      '@SUM(A1)',
+      'Smith, John',
+      'Line one\nLine two',
+      'He said "hi"',
+    ];
+    for (const [i, name] of nasty.entries())
+      await insert(i + 10, { patientInfo: { name, email: 'x@example.com' } });
 
     const res = await h.request.get('/api/admin/appointments/export').set(as());
     const rows = parseCsv(res.text).slice(1);
@@ -102,9 +135,12 @@ describe('appointment CSV export', () => {
     await insert(21, { status: 'booked', date: '2026-03-05' });
     await insert(22, { status: 'cancelled', date: '2026-03-07' });
     await insert(23, { status: 'completed', date: '2026-03-09' });
-    const names = async (query) => parseCsv((await h.request.get('/api/admin/appointments/export').set(as()).query(query)).text).slice(1).map((r) => r[3]);
+    const names = async (query) =>
+      parseCsv((await h.request.get('/api/admin/appointments/export').set(as()).query(query)).text)
+        .slice(1)
+        .map((r) => r[3]);
     expect(await names({ status: 'cancelled' })).toEqual(['Patient 22']);
-    expect((await names({ from: '2026-03-06', to: '2026-03-08' }))).toEqual(['Patient 22']);
+    expect(await names({ from: '2026-03-06', to: '2026-03-08' })).toEqual(['Patient 22']);
     expect(await names({ doctorId: doctor.id })).toHaveLength(3);
     expect(await names({ doctorId: '64b64b64b64b64b64b64b64b' })).toEqual([]);
     const bad = await h.request.get('/api/admin/appointments/export').set(as()).query({ status: 'nope' });
@@ -121,7 +157,11 @@ describe('appointment CSV export', () => {
         patient: doctor.doctor._id,
         doctor: doctor.doctor._id,
         patientInfo: { name: `Bulk ${i}`, email: `b${i}@example.com` },
-        doctorInfo: { name: 'Dr. Test', speciality: 'general-physician', specialityName: 'General physician' },
+        doctorInfo: {
+          name: 'Dr. Test',
+          speciality: 'general-physician',
+          specialityName: 'General physician',
+        },
         date: '2026-03-05',
         time: '10:00',
         startsAt: new Date(Date.UTC(2026, 2, 5) + i * 1000),

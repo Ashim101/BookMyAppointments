@@ -17,7 +17,11 @@ export function createRefundService({ provider, clock, logger }) {
       { $set: { paymentStatus: 'refunded', 'payment.refundId': refundId, 'payment.refundedAt': now } },
       { returnDocument: 'after' },
     );
-    if (updated) await Payment.updateOne({ appointment: appointmentId, status: 'paid' }, { $set: { status: 'refunded' } });
+    if (updated)
+      await Payment.updateOne(
+        { appointment: appointmentId, status: 'paid' },
+        { $set: { status: 'refunded' } },
+      );
     return updated;
   }
 
@@ -28,10 +32,17 @@ export function createRefundService({ provider, clock, logger }) {
         amount: appointment.fee,
         currency: appointment.currency,
       });
-      if (result.status === 'completed') return (await markRefunded(appointment._id, result.refundId)) ?? appointment;
-      await Appointment.updateOne({ _id: appointment._id }, { $set: { 'payment.refundId': result.refundId } });
+      if (result.status === 'completed')
+        return (await markRefunded(appointment._id, result.refundId)) ?? appointment;
+      await Appointment.updateOne(
+        { _id: appointment._id },
+        { $set: { 'payment.refundId': result.refundId } },
+      );
     } catch (err) {
-      logger.error({ err, appointmentId: String(appointment._id) }, 'refund request failed; left as refund_pending');
+      logger.error(
+        { err, appointmentId: String(appointment._id) },
+        'refund request failed; left as refund_pending',
+      );
     }
     return appointment;
   }

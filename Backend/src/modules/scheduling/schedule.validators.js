@@ -16,7 +16,8 @@ function checkWeekly(weekly, ctx) {
   const seen = new Set();
   weekly.forEach((entry, index) => {
     const at = (...rest) => ['weekly', index, ...rest];
-    if (seen.has(entry.day)) ctx.addIssue({ code: 'custom', path: at('day'), message: 'Each day may appear only once' });
+    if (seen.has(entry.day))
+      ctx.addIssue({ code: 'custom', path: at('day'), message: 'Each day may appear only once' });
     seen.add(entry.day);
     if (timeToMinutes(entry.start) >= timeToMinutes(entry.end)) {
       ctx.addIssue({ code: 'custom', path: at('end'), message: 'End must be after start' });
@@ -42,7 +43,12 @@ export const scheduleBody = z
 
 export const defaultSchedule = (slotMinutes = 30) => ({
   slotMinutes,
-  weekly: [1, 2, 3, 4, 5].map((day) => ({ day, start: '10:00', end: '17:00', breaks: [{ start: '13:00', end: '14:00' }] })),
+  weekly: [1, 2, 3, 4, 5].map((day) => ({
+    day,
+    start: '10:00',
+    end: '17:00',
+    breaks: [{ start: '13:00', end: '14:00' }],
+  })),
 });
 
 export const toScheduleDto = (schedule) => ({

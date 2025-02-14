@@ -1,5 +1,13 @@
 import { badRequest } from '../../utils/AppError.js';
-import { addDays, addMonths, daysBetween, startOfMonth, startOfWeek, startOfZonedDay, todayIn } from '../../utils/time.js';
+import {
+  addDays,
+  addMonths,
+  daysBetween,
+  startOfMonth,
+  startOfWeek,
+  startOfZonedDay,
+  todayIn,
+} from '../../utils/time.js';
 import { Appointment } from '../appointments/appointment.model.js';
 import { Doctor } from '../doctors/doctor.model.js';
 import { Patient } from '../patients/patient.model.js';
@@ -20,7 +28,8 @@ export function listPeriods(from, to, interval) {
   } else if (interval === 'week') {
     for (let week = startOfWeek(from); week <= to; week = addDays(week, 7)) labels.push(week);
   } else {
-    for (let month = startOfMonth(from); month <= to; month = addMonths(month, 1)) labels.push(month.slice(0, 7));
+    for (let month = startOfMonth(from); month <= to; month = addMonths(month, 1))
+      labels.push(month.slice(0, 7));
   }
   return labels;
 }
@@ -40,7 +49,11 @@ export function createAnalyticsService({ settings, clock }) {
           $group: {
             _id: null,
             total: { $sum: '$fee' },
-            last30Days: { $sum: { $cond: [{ $and: [{ $gte: ['$startsAt', since] }, { $lte: ['$startsAt', now] }] }, '$fee', 0] } },
+            last30Days: {
+              $sum: {
+                $cond: [{ $and: [{ $gte: ['$startsAt', since] }, { $lte: ['$startsAt', now] }] }, '$fee', 0],
+              },
+            },
           },
         },
       ]),
@@ -70,7 +83,10 @@ export function createAnalyticsService({ settings, clock }) {
     const label = (date, format) => ({ $dateToString: { format, date, timezone } });
     if (interval === 'month') return label('$startsAt', '%Y-%m');
     if (interval === 'day') return label('$startsAt', '%Y-%m-%d');
-    return label({ $dateTrunc: { date: '$startsAt', unit: 'week', startOfWeek: 'monday', timezone } }, '%Y-%m-%d');
+    return label(
+      { $dateTrunc: { date: '$startsAt', unit: 'week', startOfWeek: 'monday', timezone } },
+      '%Y-%m-%d',
+    );
   }
 
   async function timeseries({ from, to, interval }) {
@@ -79,10 +95,18 @@ export function createAnalyticsService({ settings, clock }) {
     const start = from ?? addDays(end, -(DEFAULT_RANGE_DAYS - 1));
     if (start > end) throw badRequest('`from` must not be after `to`');
     const periods = listPeriods(start, end, interval);
-    if (periods.length > MAX_PERIODS || daysBetween(start, end) > 3660) throw badRequest('The requested range is too large');
+    if (periods.length > MAX_PERIODS || daysBetween(start, end) > 3660)
+      throw badRequest('The requested range is too large');
 
     const rows = await Appointment.aggregate([
-      { $match: { startsAt: { $gte: new Date(startOfZonedDay(start, timezone)), $lt: new Date(startOfZonedDay(addDays(end, 1), timezone)) } } },
+      {
+        $match: {
+          startsAt: {
+            $gte: new Date(startOfZonedDay(start, timezone)),
+            $lt: new Date(startOfZonedDay(addDays(end, 1), timezone)),
+          },
+        },
+      },
       {
         $group: {
           _id: periodExpression(interval, timezone),
@@ -135,7 +159,12 @@ export function createAnalyticsService({ settings, clock }) {
       { $unwind: '$doctor' },
     ]);
     return rows.map((row) => ({
-      doctor: { id: String(row._id), name: row.doctor.name, image: row.doctor.image ?? null, speciality: row.doctor.speciality },
+      doctor: {
+        id: String(row._id),
+        name: row.doctor.name,
+        image: row.doctor.image ?? null,
+        speciality: row.doctor.speciality,
+      },
       appointments: row.appointments,
       revenue: row.revenue,
       rating: row.doctor.rating.count > 0 ? round(row.doctor.rating.average, 1) : 0,

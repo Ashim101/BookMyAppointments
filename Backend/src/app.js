@@ -15,7 +15,11 @@ import { createAppointmentRoutes } from './modules/appointments/appointment.rout
 import { createAuditAdminRoutes } from './modules/audit/audit.routes.js';
 import { createAuthController } from './modules/auth/auth.controller.js';
 import { createAuthRoutes } from './modules/auth/auth.routes.js';
-import { createDoctorAdminRoutes, createDoctorRoutes, createDoctorSelfRoutes } from './modules/doctors/doctor.routes.js';
+import {
+  createDoctorAdminRoutes,
+  createDoctorRoutes,
+  createDoctorSelfRoutes,
+} from './modules/doctors/doctor.routes.js';
 import { createHealthRoutes } from './modules/health/health.routes.js';
 import { createNotificationRoutes } from './modules/notifications/notification.routes.js';
 import { createPatientController } from './modules/patients/patient.controller.js';
@@ -23,7 +27,10 @@ import { createPatientAdminRoutes, createPatientRoutes } from './modules/patient
 import { createPaymentRoutes, createPaymentWebhookRoute } from './modules/payments/payment.routes.js';
 import { createReviewAdminRoutes, createReviewController } from './modules/reviews/review.routes.js';
 import { createSettingsAdminRoutes } from './modules/settings/settings.routes.js';
-import { createSpecialityAdminRoutes, createSpecialityRoutes } from './modules/specialities/speciality.routes.js';
+import {
+  createSpecialityAdminRoutes,
+  createSpecialityRoutes,
+} from './modules/specialities/speciality.routes.js';
 import { createLogger } from './utils/logger.js';
 
 /**
@@ -67,18 +74,42 @@ export function createApp({ config, logger = createLogger(config.logLevel), over
   };
 
   app.use('/api/health', createHealthRoutes({ reminderJob: container.reminderJob, config }));
-  app.use('/api/auth', createAuthRoutes({ controller: createAuthController(container.auth), authenticate, limiter: createAuthLimiter(config) }));
+  app.use(
+    '/api/auth',
+    createAuthRoutes({
+      controller: createAuthController(container.auth),
+      authenticate,
+      limiter: createAuthLimiter(config),
+    }),
+  );
   app.use('/api/specialities', createSpecialityRoutes({ specialities: container.specialities, cache }));
-  app.use('/api/doctors', createDoctorRoutes({ doctors: container.doctors, reviews: container.reviews, cache }));
-  app.use('/api/patient', createPatientRoutes({ controller: createPatientController(container.patients), authenticate }));
+  app.use(
+    '/api/doctors',
+    createDoctorRoutes({ doctors: container.doctors, reviews: container.reviews, cache }),
+  );
+  app.use(
+    '/api/patient',
+    createPatientRoutes({ controller: createPatientController(container.patients), authenticate }),
+  );
   app.use(
     '/api/appointments',
-    createAppointmentRoutes({ controller: createAppointmentController(container.appointments), reviewController, authenticate, audit }),
+    createAppointmentRoutes({
+      controller: createAppointmentController(container.appointments),
+      reviewController,
+      authenticate,
+      audit,
+    }),
   );
   app.use('/api/payments', createPaymentRoutes({ payments: container.payments, authenticate }));
-  app.use('/api/notifications', createNotificationRoutes({ notifications: container.notifications, authenticate }));
+  app.use(
+    '/api/notifications',
+    createNotificationRoutes({ notifications: container.notifications, authenticate }),
+  );
   app.use('/api/doctor', createDoctorSelfRoutes({ self: container.doctorSelf, authenticate, audit }));
-  app.use('/api/admin', createAdminRoutes({ authenticate, appointments: container.appointments, routers: adminRouters }));
+  app.use(
+    '/api/admin',
+    createAdminRoutes({ authenticate, appointments: container.appointments, routers: adminRouters }),
+  );
 
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger));

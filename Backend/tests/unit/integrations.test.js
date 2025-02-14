@@ -44,10 +44,18 @@ beforeEach(() => vi.clearAllMocks());
 describe('image content checks', () => {
   it('accepts matching magic bytes and rejects mismatches', () => {
     expect(() => assertImageContent({ mimetype: 'image/png', buffer: PNG })).not.toThrow();
-    expect(() => assertImageContent({ mimetype: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]) })).not.toThrow();
-    expect(() => assertImageContent({ mimetype: 'image/webp', buffer: Buffer.from('RIFF....WEBPxxxx') })).not.toThrow();
-    expect(() => assertImageContent({ mimetype: 'image/png', buffer: Buffer.from('GIF89a') })).toThrow(/not a valid image/);
-    expect(() => assertImageContent({ mimetype: 'image/gif', buffer: Buffer.from('GIF89a') })).toThrow(/not a valid image/);
+    expect(() =>
+      assertImageContent({ mimetype: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]) }),
+    ).not.toThrow();
+    expect(() =>
+      assertImageContent({ mimetype: 'image/webp', buffer: Buffer.from('RIFF....WEBPxxxx') }),
+    ).not.toThrow();
+    expect(() => assertImageContent({ mimetype: 'image/png', buffer: Buffer.from('GIF89a') })).toThrow(
+      /not a valid image/,
+    );
+    expect(() => assertImageContent({ mimetype: 'image/gif', buffer: Buffer.from('GIF89a') })).toThrow(
+      /not a valid image/,
+    );
   });
 });
 
@@ -72,15 +80,27 @@ describe('local image storage', () => {
 });
 
 describe('Cloudinary storage', () => {
-  const config = loadConfig({ ...base, CLOUDINARY_CLOUD_NAME: 'demo', CLOUDINARY_API_KEY: 'key', CLOUDINARY_API_SECRET: 'secret' });
+  const config = loadConfig({
+    ...base,
+    CLOUDINARY_CLOUD_NAME: 'demo',
+    CLOUDINARY_API_KEY: 'key',
+    CLOUDINARY_API_SECRET: 'secret',
+  });
 
   it('uploads through the SDK and returns the secure URL', async () => {
-    mocks.upload.mockImplementation((_options, _buffer, callback) => callback(null, { secure_url: 'https://res.cloudinary.com/demo/image/upload/v1/bookmyappointments/abc.png' }));
+    mocks.upload.mockImplementation((_options, _buffer, callback) =>
+      callback(null, {
+        secure_url: 'https://res.cloudinary.com/demo/image/upload/v1/bookmyappointments/abc.png',
+      }),
+    );
     const storage = createStorage({ config, logger });
     expect(mocks.config).toHaveBeenCalledWith({ cloud_name: 'demo', api_key: 'key', api_secret: 'secret' });
     const url = await storage.saveImage({ mimetype: 'image/png', buffer: PNG });
     expect(url).toBe('https://res.cloudinary.com/demo/image/upload/v1/bookmyappointments/abc.png');
-    expect(mocks.upload.mock.calls[0][0]).toMatchObject({ folder: 'bookmyappointments', resource_type: 'image' });
+    expect(mocks.upload.mock.calls[0][0]).toMatchObject({
+      folder: 'bookmyappointments',
+      resource_type: 'image',
+    });
   });
 
   it('surfaces upload failures and destroys replaced images by public id', async () => {
@@ -99,13 +119,31 @@ describe('Google verifier', () => {
   });
 
   it('maps the verified payload', async () => {
-    mocks.verifyIdToken.mockResolvedValue({ getPayload: () => ({ sub: 'g1', email: 'a@example.com', email_verified: true, name: 'Ann', picture: 'https://img/a.png' }) });
+    mocks.verifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        sub: 'g1',
+        email: 'a@example.com',
+        email_verified: true,
+        name: 'Ann',
+        picture: 'https://img/a.png',
+      }),
+    });
     const verify = createGoogleVerifier({ config: loadConfig({ ...base, GOOGLE_CLIENT_ID: 'client-id' }) });
-    expect(await verify('token')).toEqual({ sub: 'g1', email: 'a@example.com', emailVerified: true, name: 'Ann', picture: 'https://img/a.png' });
+    expect(await verify('token')).toEqual({
+      sub: 'g1',
+      email: 'a@example.com',
+      emailVerified: true,
+      name: 'Ann',
+      picture: 'https://img/a.png',
+    });
     expect(mocks.verifyIdToken).toHaveBeenCalledWith({ idToken: 'token', audience: 'client-id' });
 
     mocks.verifyIdToken.mockResolvedValue({ getPayload: () => ({ sub: 'g2', email: 'b@example.com' }) });
-    expect(await verify('token')).toMatchObject({ emailVerified: false, name: 'b@example.com', picture: null });
+    expect(await verify('token')).toMatchObject({
+      emailVerified: false,
+      name: 'b@example.com',
+      picture: null,
+    });
   });
 });
 
@@ -113,20 +151,39 @@ describe('mailer', () => {
   it('uses the SMTP transport when configured and logs without bodies', async () => {
     mocks.sendMail.mockResolvedValue({});
     mocks.createTransport.mockReturnValue({ sendMail: mocks.sendMail });
-    const config = loadConfig({ ...base, SMTP_HOST: 'smtp.example.com', SMTP_PORT: '465', SMTP_USER: 'user', SMTP_PASS: 'pass' });
+    const config = loadConfig({
+      ...base,
+      SMTP_HOST: 'smtp.example.com',
+      SMTP_PORT: '465',
+      SMTP_USER: 'user',
+      SMTP_PASS: 'pass',
+    });
     const mailer = createMailer({ config, logger });
-    expect(mocks.createTransport).toHaveBeenCalledWith({ host: 'smtp.example.com', port: 465, secure: true, auth: { user: 'user', pass: 'pass' } });
+    expect(mocks.createTransport).toHaveBeenCalledWith({
+      host: 'smtp.example.com',
+      port: 465,
+      secure: true,
+      auth: { user: 'user', pass: 'pass' },
+    });
     await mailer.send({ to: 'x@example.com', subject: 'Hello', text: 'Secret body 123456' });
-    expect(mocks.sendMail).toHaveBeenCalledWith({ from: config.mailFrom, to: 'x@example.com', subject: 'Hello', text: 'Secret body 123456' });
+    expect(mocks.sendMail).toHaveBeenCalledWith({
+      from: config.mailFrom,
+      to: 'x@example.com',
+      subject: 'Hello',
+      text: 'Secret body 123456',
+    });
     expect(JSON.stringify(logger.info.mock.calls)).not.toContain('Secret body');
     expect(mailer.outbox).toEqual([]);
   });
 
   it('keeps messages in the outbox with the json transport', async () => {
-    mocks.createTransport.mockImplementation(() => ({ sendMail: async (message) => ({ message: JSON.stringify(message) }) }));
+    mocks.createTransport.mockImplementation(() => ({
+      sendMail: async (message) => ({ message: JSON.stringify(message) }),
+    }));
     const mailer = createMailer({ config: loadConfig(base), logger });
     expect(mocks.createTransport).toHaveBeenCalledWith({ jsonTransport: true });
-    for (let i = 0; i < 105; i += 1) await mailer.send({ to: 'x@example.com', subject: `S${i}`, text: `T${i}` });
+    for (let i = 0; i < 105; i += 1)
+      await mailer.send({ to: 'x@example.com', subject: `S${i}`, text: `T${i}` });
     expect(mailer.outbox).toHaveLength(100);
     expect(mailer.outbox.at(-1)).toEqual({ to: 'x@example.com', subject: 'S104', text: 'T104' });
     expect(mailer.outbox[0].subject).toBe('S5');
@@ -137,7 +194,13 @@ describe('mailer', () => {
 describe('payment provider selection', () => {
   it('chooses the mock provider by default and Razorpay when configured', () => {
     expect(createPaymentProvider({ config: loadConfig(base) })).toMatchObject({ mode: 'mock', keyId: null });
-    const config = loadConfig({ ...base, PAYMENTS_MODE: 'razorpay', RAZORPAY_KEY_ID: 'rzp_test_1', RAZORPAY_KEY_SECRET: 's', RAZORPAY_WEBHOOK_SECRET: 'w' });
+    const config = loadConfig({
+      ...base,
+      PAYMENTS_MODE: 'razorpay',
+      RAZORPAY_KEY_ID: 'rzp_test_1',
+      RAZORPAY_KEY_SECRET: 's',
+      RAZORPAY_WEBHOOK_SECRET: 'w',
+    });
     expect(createPaymentProvider({ config })).toMatchObject({ mode: 'razorpay', keyId: 'rzp_test_1' });
   });
 });

@@ -7,5 +7,6 @@ export const createAuthLimiter = ({ authRateLimit }) =>
     limit: authRateLimit.max,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    handler: (_req, _res, next) => next(new AppError('RATE_LIMITED', 'Too many requests, please try again later')),
+    handler: (_req, _res, next) =>
+      next(new AppError('RATE_LIMITED', 'Too many requests, please try again later')),
   });

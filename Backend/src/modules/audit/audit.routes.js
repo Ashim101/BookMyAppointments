@@ -17,6 +17,10 @@ const listSchema = {
 
 export function createAuditAdminRoutes({ audit }) {
   const router = Router();
-  router.get('/', validate(listSchema), asyncHandler(async (req, res) => ok(res, await audit.list(req.valid.query))));
+  router.get(
+    '/',
+    validate(listSchema),
+    asyncHandler(async (req, res) => ok(res, await audit.list(req.valid.query))),
+  );
   return router;
 }

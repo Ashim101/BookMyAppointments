@@ -19,7 +19,12 @@ export const BASE_NOW = Date.UTC(2026, 2, 2, 4, 0);
 
 export const WEEK_SCHEDULE = {
   slotMinutes: 30,
-  weekly: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, start: '09:00', end: '17:00', breaks: [{ start: '12:00', end: '13:00' }] })),
+  weekly: [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+    day,
+    start: '09:00',
+    end: '17:00',
+    breaks: [{ start: '12:00', end: '13:00' }],
+  })),
 };
 
 export function makeClock(start = BASE_NOW) {
@@ -82,7 +87,9 @@ export async function startHarness({ env = {}, overrides = {}, now = BASE_NOW } 
 
     async speciality(name = 'General physician') {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      return (await Speciality.findOne({ slug })) ?? Speciality.create({ slug, name, description: `${name} care` });
+      return (
+        (await Speciality.findOne({ slug })) ?? Speciality.create({ slug, name, description: `${name} care` })
+      );
     },
 
     async doctor(overrides = {}) {
@@ -124,14 +131,20 @@ export async function startHarness({ env = {}, overrides = {}, now = BASE_NOW } 
     async patientSession(email = `pat${randomBytes(3).toString('hex')}@example.com`) {
       await request.post('/api/auth/otp/request').send({ email }).expect(200);
       const code = /(\d{6})/.exec(container.mailer.outbox.findLast((m) => m.to === email).text)[1];
-      const res = await request.post('/api/auth/register').send({ name: 'Pat Ient', email, password: PASSWORD, otp: code }).expect(200);
+      const res = await request
+        .post('/api/auth/register')
+        .send({ name: 'Pat Ient', email, password: PASSWORD, otp: code })
+        .expect(200);
       const { accessToken, refreshToken, user } = res.body.data;
       return { email, token: accessToken, refreshToken, id: user.id, session: res.body.data };
     },
 
     /** Books the doctor's slot as the given patient and returns the appointment payload. */
     async book(patient, doctorId, { date = h.day(3), time = '10:00', reason = '' } = {}) {
-      const res = await request.post('/api/appointments').set(h.bearer(patient.token)).send({ doctorId, date, time, reason });
+      const res = await request
+        .post('/api/appointments')
+        .set(h.bearer(patient.token))
+        .send({ doctorId, date, time, reason });
       return res;
     },
 

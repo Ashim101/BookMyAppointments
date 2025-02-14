@@ -30,7 +30,10 @@ export function createTokenService({ config, clock }) {
   }
 
   const revokeAll = (userId, role) =>
-    RefreshToken.updateMany({ userId: String(userId), role, revokedAt: null }, { $set: { revokedAt: new Date(clock.now()) } });
+    RefreshToken.updateMany(
+      { userId: String(userId), role, revokedAt: null },
+      { $set: { revokedAt: new Date(clock.now()) } },
+    );
 
   /** Atomically consumes a refresh token. Returns the owner and token family. */
   async function consume(refreshToken) {
@@ -45,7 +48,8 @@ export function createTokenService({ config, clock }) {
 
     // The owner is attached so callers can report a blocked account instead of a generic failure.
     const stale = await RefreshToken.findOne({ tokenHash });
-    const failure = (message) => Object.assign(unauthorized(message), { owner: stale && { userId: stale.userId, role: stale.role } });
+    const failure = (message) =>
+      Object.assign(unauthorized(message), { owner: stale && { userId: stale.userId, role: stale.role } });
     if (stale?.revokedAt) {
       await revokeAll(stale.userId, stale.role);
       throw failure('Refresh token was already used. Please sign in again.');
@@ -54,7 +58,10 @@ export function createTokenService({ config, clock }) {
   }
 
   const revoke = (refreshToken) =>
-    RefreshToken.updateOne({ tokenHash: sha256(refreshToken), revokedAt: null }, { $set: { revokedAt: new Date(clock.now()) } });
+    RefreshToken.updateOne(
+      { tokenHash: sha256(refreshToken), revokedAt: null },
+      { $set: { revokedAt: new Date(clock.now()) } },
+    );
 
   return { issue, consume, revoke, revokeAll };
 }

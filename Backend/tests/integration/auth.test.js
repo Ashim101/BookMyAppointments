@@ -5,7 +5,8 @@ import { Patient } from '../../src/modules/patients/patient.model.js';
 import { sha256 } from '../../src/utils/crypto.js';
 import { ADMIN, PASSWORD, startHarness } from '../helpers/harness.js';
 
-const codeFor = (h, email) => /(\d{6})/.exec(h.container.mailer.outbox.findLast((m) => m.to === email).text)[1];
+const codeFor = (h, email) =>
+  /(\d{6})/.exec(h.container.mailer.outbox.findLast((m) => m.to === email).text)[1];
 
 describe('OTP registration', () => {
   let h;
@@ -25,7 +26,9 @@ describe('OTP registration', () => {
     expect(JSON.stringify(stored)).not.toContain(code);
     expect(stored.codeHash).toHaveLength(64);
 
-    const reg = await h.request.post('/api/auth/register').send({ name: 'New User', email, password: PASSWORD, otp: code });
+    const reg = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'New User', email, password: PASSWORD, otp: code });
     expect(reg.status).toBe(200);
     expect(reg.body.data.user).toMatchObject({ name: 'New User', email, role: 'patient', image: null });
     expect(reg.body.data.accessToken).toBeTruthy();
@@ -36,7 +39,9 @@ describe('OTP registration', () => {
   });
 
   it('refuses to register without having requested a code', async () => {
-    const res = await h.request.post('/api/auth/register').send({ name: 'Sneaky', email: 'sneaky@example.com', password: PASSWORD, otp: '123456' });
+    const res = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'Sneaky', email: 'sneaky@example.com', password: PASSWORD, otp: '123456' });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('OTP_INVALID');
     expect(await Patient.exists({ email: 'sneaky@example.com' })).toBeNull();
@@ -47,9 +52,13 @@ describe('OTP registration', () => {
     await h.request.post('/api/auth/otp/request').send({ email });
     const code = codeFor(h, email);
     const wrong = code === '000000' ? '111111' : '000000';
-    const bad = await h.request.post('/api/auth/register').send({ name: 'Wrong One', email, password: PASSWORD, otp: wrong });
+    const bad = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'Wrong One', email, password: PASSWORD, otp: wrong });
     expect(bad.body.error.code).toBe('OTP_INVALID');
-    const good = await h.request.post('/api/auth/register').send({ name: 'Wrong One', email, password: PASSWORD, otp: code });
+    const good = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'Wrong One', email, password: PASSWORD, otp: code });
     expect(good.status).toBe(200);
   });
 
@@ -59,10 +68,14 @@ describe('OTP registration', () => {
     const code = codeFor(h, email);
     const wrong = code === '000000' ? '111111' : '000000';
     for (let i = 0; i < 5; i += 1) {
-      const res = await h.request.post('/api/auth/register').send({ name: 'Locked', email, password: PASSWORD, otp: wrong });
+      const res = await h.request
+        .post('/api/auth/register')
+        .send({ name: 'Locked', email, password: PASSWORD, otp: wrong });
       expect(res.body.error.code).toBe('OTP_INVALID');
     }
-    const res = await h.request.post('/api/auth/register').send({ name: 'Locked', email, password: PASSWORD, otp: code });
+    const res = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'Locked', email, password: PASSWORD, otp: code });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('OTP_INVALID');
     expect(res.body.error.message).toMatch(/too many attempts/i);
@@ -73,7 +86,9 @@ describe('OTP registration', () => {
     await h.request.post('/api/auth/otp/request').send({ email });
     const code = codeFor(h, email);
     h.clock.advance(10 * 60_000 + 1000);
-    const res = await h.request.post('/api/auth/register').send({ name: 'Late One', email, password: PASSWORD, otp: code });
+    const res = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'Late One', email, password: PASSWORD, otp: code });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('OTP_EXPIRED');
   });
@@ -95,7 +110,9 @@ describe('OTP registration', () => {
     const request = await h.request.post('/api/auth/otp/request').send({ email: patient.email });
     expect(request.status).toBe(409);
     expect(request.body.error.code).toBe('EMAIL_TAKEN');
-    const reg = await h.request.post('/api/auth/register').send({ name: 'Dup', email: patient.email, password: PASSWORD, otp: '123456' });
+    const reg = await h.request
+      .post('/api/auth/register')
+      .send({ name: 'Dup', email: patient.email, password: PASSWORD, otp: '123456' });
     expect(reg.body.error.code).toBe('EMAIL_TAKEN');
   });
 
@@ -104,7 +121,9 @@ describe('OTP registration', () => {
     await h.request.post('/api/auth/otp/request').send({ email });
     const code = codeFor(h, email);
     for (const password of ['short1', 'onlyletters', '12345678']) {
-      const res = await h.request.post('/api/auth/register').send({ name: 'Weak', email, password, otp: code });
+      const res = await h.request
+        .post('/api/auth/register')
+        .send({ name: 'Weak', email, password, otp: code });
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
       expect(res.body.error.details[0].path).toBe('password');
@@ -125,11 +144,15 @@ describe('login and sessions', () => {
     const patient = await h.patientSession('login@example.com');
     const doctor = await h.doctor();
 
-    const p = await h.request.post('/api/auth/login').send({ email: 'LOGIN@example.com', password: PASSWORD, role: 'patient' });
+    const p = await h.request
+      .post('/api/auth/login')
+      .send({ email: 'LOGIN@example.com', password: PASSWORD, role: 'patient' });
     expect(p.status).toBe(200);
     expect(p.body.data.user).toMatchObject({ id: patient.id, role: 'patient' });
 
-    const d = await h.request.post('/api/auth/login').send({ email: doctor.email, password: PASSWORD, role: 'doctor' });
+    const d = await h.request
+      .post('/api/auth/login')
+      .send({ email: doctor.email, password: PASSWORD, role: 'doctor' });
     expect(d.body.data.user).toMatchObject({ id: doctor.id, role: 'doctor' });
 
     const a = await h.request.post('/api/auth/login').send({ ...ADMIN, role: 'admin' });
@@ -182,7 +205,10 @@ describe('login and sessions', () => {
 
   it('returns TOKEN_EXPIRED distinctly for an expired access token', async () => {
     const patient = await h.patientSession();
-    const expired = jwt.sign({ role: 'patient' }, h.config.jwt.accessSecret, { subject: patient.id, expiresIn: -10 });
+    const expired = jwt.sign({ role: 'patient' }, h.config.jwt.accessSecret, {
+      subject: patient.id,
+      expiresIn: -10,
+    });
     const res = await h.request.get('/api/auth/me').set(h.bearer(expired));
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('TOKEN_EXPIRED');
@@ -222,14 +248,18 @@ describe('refresh token lifecycle', () => {
   it('revokes every token of the account when a rotated token is reused', async () => {
     const patient = await h.patientSession();
     const first = await h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken });
-    const second = await h.request.post('/api/auth/refresh').send({ refreshToken: first.body.data.refreshToken });
+    const second = await h.request
+      .post('/api/auth/refresh')
+      .send({ refreshToken: first.body.data.refreshToken });
     expect(second.status).toBe(200);
 
     const replay = await h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken });
     expect(replay.status).toBe(401);
     expect(replay.body.error.code).toBe('UNAUTHORIZED');
 
-    const legitimate = await h.request.post('/api/auth/refresh').send({ refreshToken: second.body.data.refreshToken });
+    const legitimate = await h.request
+      .post('/api/auth/refresh')
+      .send({ refreshToken: second.body.data.refreshToken });
     expect(legitimate.status).toBe(401);
     expect(await RefreshToken.countDocuments({ userId: patient.id, revokedAt: null })).toBe(0);
   });
@@ -237,7 +267,9 @@ describe('refresh token lifecycle', () => {
   it('lets only one of several concurrent refreshes with the same token succeed', async () => {
     const patient = await h.patientSession();
     const results = await Promise.all(
-      Array.from({ length: 5 }, () => h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken })),
+      Array.from({ length: 5 }, () =>
+        h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken }),
+      ),
     );
     expect(results.filter((r) => r.status === 200)).toHaveLength(1);
     expect(results.filter((r) => r.status === 401)).toHaveLength(4);
@@ -267,7 +299,10 @@ describe('refresh token lifecycle', () => {
   it('blocks refresh and API access for a blocked patient and revokes their tokens', async () => {
     const admin = await h.adminSession();
     const patient = await h.patientSession();
-    const block = await h.request.patch(`/api/admin/patients/${patient.id}/block`).set(h.bearer(admin.token)).send({ blocked: true });
+    const block = await h.request
+      .patch(`/api/admin/patients/${patient.id}/block`)
+      .set(h.bearer(admin.token))
+      .send({ blocked: true });
     expect(block.status).toBe(200);
     expect(block.body.data.blocked).toBe(true);
     expect(await RefreshToken.countDocuments({ userId: patient.id, revokedAt: null })).toBe(0);
@@ -278,23 +313,40 @@ describe('refresh token lifecycle', () => {
     const api = await h.request.get('/api/auth/me').set(h.bearer(patient.token));
     expect(api.status).toBe(403);
     expect(api.body.error.code).toBe('ACCOUNT_BLOCKED');
-    const login = await h.request.post('/api/auth/login').send({ email: patient.email, password: PASSWORD, role: 'patient' });
+    const login = await h.request
+      .post('/api/auth/login')
+      .send({ email: patient.email, password: PASSWORD, role: 'patient' });
     expect(login.status).toBe(403);
     expect(login.body.error.code).toBe('ACCOUNT_BLOCKED');
 
-    await h.request.patch(`/api/admin/patients/${patient.id}/block`).set(h.bearer(admin.token)).send({ blocked: false }).expect(200);
-    await h.request.post('/api/auth/login').send({ email: patient.email, password: PASSWORD, role: 'patient' }).expect(200);
+    await h.request
+      .patch(`/api/admin/patients/${patient.id}/block`)
+      .set(h.bearer(admin.token))
+      .send({ blocked: false })
+      .expect(200);
+    await h.request
+      .post('/api/auth/login')
+      .send({ email: patient.email, password: PASSWORD, role: 'patient' })
+      .expect(200);
   });
 
   it('revokes tokens and blocks login when a doctor is deactivated', async () => {
     const admin = await h.adminSession();
     const doctor = await h.doctorSession();
-    await h.request.patch(`/api/admin/doctors/${doctor.id}/active`).set(h.bearer(admin.token)).send({ active: false }).expect(200);
+    await h.request
+      .patch(`/api/admin/doctors/${doctor.id}/active`)
+      .set(h.bearer(admin.token))
+      .send({ active: false })
+      .expect(200);
     expect(await RefreshToken.countDocuments({ userId: doctor.id, revokedAt: null })).toBe(0);
-    const refresh = await h.request.post('/api/auth/refresh').send({ refreshToken: doctor.session.refreshToken });
+    const refresh = await h.request
+      .post('/api/auth/refresh')
+      .send({ refreshToken: doctor.session.refreshToken });
     expect(refresh.status).toBe(403);
     expect(refresh.body.error.code).toBe('ACCOUNT_BLOCKED');
-    const login = await h.request.post('/api/auth/login').send({ email: doctor.email, password: PASSWORD, role: 'doctor' });
+    const login = await h.request
+      .post('/api/auth/login')
+      .send({ email: doctor.email, password: PASSWORD, role: 'doctor' });
     expect(login.body.error.code).toBe('ACCOUNT_BLOCKED');
     expect((await h.request.get('/api/doctor/profile').set(h.bearer(doctor.token))).status).toBe(403);
   });
@@ -311,8 +363,12 @@ describe('password reset', () => {
 
   it('answers identically for known and unknown emails but only mails real accounts', async () => {
     const patient = await h.patientSession('forgot@example.com');
-    const known = await h.request.post('/api/auth/password/forgot').send({ email: patient.email, role: 'patient' });
-    const unknown = await h.request.post('/api/auth/password/forgot').send({ email: 'nobody@example.com', role: 'patient' });
+    const known = await h.request
+      .post('/api/auth/password/forgot')
+      .send({ email: patient.email, role: 'patient' });
+    const unknown = await h.request
+      .post('/api/auth/password/forgot')
+      .send({ email: 'nobody@example.com', role: 'patient' });
     expect(known.status).toBe(200);
     expect(unknown.status).toBe(200);
     expect(known.body).toEqual(unknown.body);
@@ -332,14 +388,30 @@ describe('password reset', () => {
     const weak = await h.request.post('/api/auth/password/reset').send({ token, password: 'weak' });
     expect(weak.status).toBe(400);
 
-    const reset = await h.request.post('/api/auth/password/reset').send({ token, password: 'Brand-new-pass1' });
+    const reset = await h.request
+      .post('/api/auth/password/reset')
+      .send({ token, password: 'Brand-new-pass1' });
     expect(reset.body).toEqual({ success: true, data: null });
     const reuse = await h.request.post('/api/auth/password/reset').send({ token, password: 'Another-pass1' });
     expect(reuse.status).toBe(400);
 
-    expect((await h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken })).status).toBe(401);
-    expect((await h.request.post('/api/auth/login').send({ email: patient.email, password: PASSWORD, role: 'patient' })).status).toBe(401);
-    expect((await h.request.post('/api/auth/login').send({ email: patient.email, password: 'Brand-new-pass1', role: 'patient' })).status).toBe(200);
+    expect(
+      (await h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken })).status,
+    ).toBe(401);
+    expect(
+      (
+        await h.request
+          .post('/api/auth/login')
+          .send({ email: patient.email, password: PASSWORD, role: 'patient' })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await h.request
+          .post('/api/auth/login')
+          .send({ email: patient.email, password: 'Brand-new-pass1', role: 'patient' })
+      ).status,
+    ).toBe(200);
   });
 
   it('sends doctors a link to the staff app and expires tokens after 30 minutes', async () => {
@@ -364,12 +436,21 @@ describe('Google sign-in', () => {
     const h = await startHarness();
     const res = await h.request.post('/api/auth/google').send({ credential: 'a-google-credential' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatchObject({ code: 'BAD_REQUEST', message: expect.stringMatching(/not configured/i) });
+    expect(res.body.error).toMatchObject({
+      code: 'BAD_REQUEST',
+      message: expect.stringMatching(/not configured/i),
+    });
     await h.stop();
   });
 
   it('creates a patient on first sign-in, links existing accounts and rejects bad credentials', async () => {
-    const profile = { sub: 'g-1', email: 'Gina@Example.com', emailVerified: true, name: 'Gina G', picture: 'https://img.example/g.png' };
+    const profile = {
+      sub: 'g-1',
+      email: 'Gina@Example.com',
+      emailVerified: true,
+      name: 'Gina G',
+      picture: 'https://img.example/g.png',
+    };
     const googleVerifier = async (credential) => {
       if (credential === 'bad-credential-value') throw new Error('invalid token');
       if (credential === 'unverified-credential') return { ...profile, emailVerified: false };
@@ -379,16 +460,27 @@ describe('Google sign-in', () => {
 
     const first = await h.request.post('/api/auth/google').send({ credential: 'good-credential-value' });
     expect(first.status).toBe(200);
-    expect(first.body.data.user).toMatchObject({ name: 'Gina G', email: 'gina@example.com', role: 'patient', image: profile.picture });
+    expect(first.body.data.user).toMatchObject({
+      name: 'Gina G',
+      email: 'gina@example.com',
+      role: 'patient',
+      image: profile.picture,
+    });
     const again = await h.request.post('/api/auth/google').send({ credential: 'good-credential-value' });
     expect(again.body.data.user.id).toBe(first.body.data.user.id);
     expect(await Patient.countDocuments({ email: 'gina@example.com' })).toBe(1);
 
-    const passwordLogin = await h.request.post('/api/auth/login').send({ email: 'gina@example.com', password: PASSWORD, role: 'patient' });
+    const passwordLogin = await h.request
+      .post('/api/auth/login')
+      .send({ email: 'gina@example.com', password: PASSWORD, role: 'patient' });
     expect(passwordLogin.status).toBe(401);
 
-    expect((await h.request.post('/api/auth/google').send({ credential: 'bad-credential-value' })).status).toBe(401);
-    expect((await h.request.post('/api/auth/google').send({ credential: 'unverified-credential' })).status).toBe(401);
+    expect(
+      (await h.request.post('/api/auth/google').send({ credential: 'bad-credential-value' })).status,
+    ).toBe(401);
+    expect(
+      (await h.request.post('/api/auth/google').send({ credential: 'unverified-credential' })).status,
+    ).toBe(401);
 
     const taken = await h.request.post('/api/auth/otp/request').send({ email: 'gina@example.com' });
     expect(taken.body.error.code).toBe('EMAIL_TAKEN');
@@ -399,7 +491,10 @@ describe('Google sign-in', () => {
 describe('auth rate limiting', () => {
   it('answers 429 RATE_LIMITED after the per-IP budget is spent, only on /auth', async () => {
     const h = await startHarness({ env: { AUTH_RATE_LIMIT_MAX: '3' } });
-    const attempt = () => h.request.post('/api/auth/login').send({ email: 'a@example.com', password: 'whatever1', role: 'patient' });
+    const attempt = () =>
+      h.request
+        .post('/api/auth/login')
+        .send({ email: 'a@example.com', password: 'whatever1', role: 'patient' });
     for (let i = 0; i < 3; i += 1) expect((await attempt()).status).toBe(401);
     const limited = await attempt();
     expect(limited.status).toBe(429);

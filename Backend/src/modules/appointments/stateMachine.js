@@ -24,14 +24,20 @@ const isParticipant = (appointment, user) =>
   (user.role === 'doctor' && String(appointment.doctor) === user.id);
 
 const requireBooked = (appointment, to) =>
-  canTransition(appointment.status, to) ? null : deny('INVALID_STATE', `A ${appointment.status} appointment cannot become ${to}`);
+  canTransition(appointment.status, to)
+    ? null
+    : deny('INVALID_STATE', `A ${appointment.status} appointment cannot become ${to}`);
 
-const requireRole = (user, role) => (user.role === role ? null : deny('FORBIDDEN', `Only a ${role} can do this`));
+const requireRole = (user, role) =>
+  user.role === role ? null : deny('FORBIDDEN', `Only a ${role} can do this`);
 
 /** Patients may only change appointments up to `cancellationCutoffHours` before they start. */
 const patientWindow = (appointment, now, cutoffHours) =>
   now > appointment.startsAt.getTime() - cutoffHours * HOUR_MS
-    ? deny('CANCELLATION_WINDOW_PASSED', `Appointments can only be changed ${cutoffHours} hours or more before they start`)
+    ? deny(
+        'CANCELLATION_WINDOW_PASSED',
+        `Appointments can only be changed ${cutoffHours} hours or more before they start`,
+      )
     : null;
 
 const CHECKS = {
@@ -47,28 +53,42 @@ const CHECKS = {
 
   reschedule: ({ appointment, user, now, settings }) =>
     requireRole(user, 'patient') ??
-    (appointment.status === 'booked' ? null : deny('INVALID_STATE', `A ${appointment.status} appointment cannot be rescheduled`)) ??
+    (appointment.status === 'booked'
+      ? null
+      : deny('INVALID_STATE', `A ${appointment.status} appointment cannot be rescheduled`)) ??
     patientWindow(appointment, now, settings.cancellationCutoffHours) ??
-    (appointment.rescheduleCount >= MAX_RESCHEDULES ? deny('INVALID_STATE', `An appointment can be rescheduled at most ${MAX_RESCHEDULES} times`) : null),
+    (appointment.rescheduleCount >= MAX_RESCHEDULES
+      ? deny('INVALID_STATE', `An appointment can be rescheduled at most ${MAX_RESCHEDULES} times`)
+      : null),
 
   complete: ({ appointment, user, now }) =>
     requireRole(user, 'doctor') ??
     requireBooked(appointment, 'completed') ??
-    (now < appointment.startsAt.getTime() - COMPLETE_LEAD_MS ? deny('INVALID_STATE', 'Consultations can be completed from 15 minutes before the start') : null),
+    (now < appointment.startsAt.getTime() - COMPLETE_LEAD_MS
+      ? deny('INVALID_STATE', 'Consultations can be completed from 15 minutes before the start')
+      : null),
 
   noShow: ({ appointment, user, now }) =>
     requireRole(user, 'doctor') ??
     requireBooked(appointment, 'no_show') ??
-    (now <= appointment.startsAt.getTime() ? deny('INVALID_STATE', 'A no-show can only be recorded after the start time') : null),
+    (now <= appointment.startsAt.getTime()
+      ? deny('INVALID_STATE', 'A no-show can only be recorded after the start time')
+      : null),
 
   pay: ({ appointment, user, now }) =>
     requireRole(user, 'patient') ??
-    (appointment.status !== 'booked' || appointment.paymentStatus !== 'unpaid' ? deny('INVALID_STATE', 'Only unpaid booked appointments can be paid') : null) ??
-    (now >= appointment.startsAt.getTime() ? deny('INVALID_STATE', 'This appointment has already started') : null),
+    (appointment.status !== 'booked' || appointment.paymentStatus !== 'unpaid'
+      ? deny('INVALID_STATE', 'Only unpaid booked appointments can be paid')
+      : null) ??
+    (now >= appointment.startsAt.getTime()
+      ? deny('INVALID_STATE', 'This appointment has already started')
+      : null),
 
   review: ({ appointment, user }) =>
     requireRole(user, 'patient') ??
-    (appointment.status !== 'completed' ? deny('INVALID_STATE', 'Only completed appointments can be reviewed') : null) ??
+    (appointment.status !== 'completed'
+      ? deny('INVALID_STATE', 'Only completed appointments can be reviewed')
+      : null) ??
     (appointment.review ? deny('ALREADY_REVIEWED', 'This appointment has already been reviewed') : null),
 };
 

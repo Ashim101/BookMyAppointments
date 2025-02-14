@@ -10,4 +10,6 @@ if (!password) {
 
 const hash = await bcrypt.hash(password, ROUNDS);
 console.log(hash);
-console.error('\nPut it in .env as ADMIN_PASSWORD_HASH (wrap it in single quotes if your shell or tooling expands "$").');
+console.error(
+  '\nPut it in .env as ADMIN_PASSWORD_HASH (wrap it in single quotes if your shell or tooling expands "$").',
+);

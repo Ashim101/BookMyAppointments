@@ -17,7 +17,9 @@ const SORTS = {
 
 export function createDoctorService({ config, clock, settings, scheduling, storage, tokens }) {
   async function specialityNames(slugs) {
-    const rows = await Speciality.find({ slug: { $in: [...new Set(slugs)] } }).select('slug name').lean();
+    const rows = await Speciality.find({ slug: { $in: [...new Set(slugs)] } })
+      .select('slug name')
+      .lean();
     return new Map(rows.map((row) => [row.slug, row.name]));
   }
 
@@ -46,7 +48,10 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
     if (speciality) filter.speciality = speciality;
     if (available) filter.available = true;
     if (minFee !== undefined || maxFee !== undefined) {
-      filter.fees = { ...(minFee !== undefined && { $gte: minFee }), ...(maxFee !== undefined && { $lte: maxFee }) };
+      filter.fees = {
+        ...(minFee !== undefined && { $gte: minFee }),
+        ...(maxFee !== undefined && { $lte: maxFee }),
+      };
     }
     return findPage(filter, SORTS[sort], page, limit, toPublicDto);
   }
@@ -82,7 +87,9 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
 
   async function assertSpeciality(slug) {
     if (!(await Speciality.exists({ slug }))) {
-      throw new AppError('VALIDATION_ERROR', 'Unknown speciality', [{ path: 'speciality', message: `No speciality with slug "${slug}"` }]);
+      throw new AppError('VALIDATION_ERROR', 'Unknown speciality', [
+        { path: 'speciality', message: `No speciality with slug "${slug}"` },
+      ]);
     }
   }
 
@@ -113,7 +120,11 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
     if (file) changes.image = await storage.saveImage(file);
     const previous = file ? await Doctor.findById(id).select('image').lean() : null;
     try {
-      const doctor = await Doctor.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', runValidators: true });
+      const doctor = await Doctor.findByIdAndUpdate(
+        id,
+        { $set: changes },
+        { returnDocument: 'after', runValidators: true },
+      );
       if (!doctor) throw notFound('Doctor');
       await storage.removeImage(previous?.image);
       return await presentOne(doctor, toAdminDto);
@@ -129,7 +140,8 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
     return doctor;
   }
 
-  const setAvailability = async (id, available) => presentOne(await updateField(id, { available }), toAdminDto);
+  const setAvailability = async (id, available) =>
+    presentOne(await updateField(id, { available }), toAdminDto);
 
   async function setActive(id, active) {
     const doctor = await updateField(id, { active });
@@ -142,5 +154,16 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
     return toScheduleDto(doctor.schedule);
   }
 
-  return { listPublic, getPublic, getSlots, listAdmin, getAdmin, create, update, setAvailability, setActive, setSchedule };
+  return {
+    listPublic,
+    getPublic,
+    getSlots,
+    listAdmin,
+    getAdmin,
+    create,
+    update,
+    setAvailability,
+    setActive,
+    setSchedule,
+  };
 }

@@ -5,7 +5,12 @@ import { addressSchema, booleanQuery, dateString, jsonField, objectId } from '..
 export const updateProfileSchema = {
   body: z.object({
     name: z.string().trim().min(2).max(80).optional(),
-    phone: z.string().trim().max(30).regex(/^[+\d][\d\s()-]*$|^$/, 'Invalid phone number').optional(),
+    phone: z
+      .string()
+      .trim()
+      .max(30)
+      .regex(/^[+\d][\d\s()-]*$|^$/, 'Invalid phone number')
+      .optional(),
     gender: z.enum(['male', 'female', 'other', 'unspecified']).optional(),
     dob: z.union([dateString, z.literal('')]).optional(),
     address: jsonField(addressSchema).optional(),

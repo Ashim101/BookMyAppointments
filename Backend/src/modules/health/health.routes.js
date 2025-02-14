@@ -8,7 +8,12 @@ export function createHealthRoutes({ reminderJob, config }) {
   router.get('/', (_req, res) => {
     const db = isDatabaseUp() ? 'up' : 'down';
     const job = config.reminders.enabled ? reminderJob.status() : null;
-    const payload = { status: 'ok', db, uptime: Math.round(process.uptime()), ...(job && { reminderJob: job }) };
+    const payload = {
+      status: 'ok',
+      db,
+      uptime: Math.round(process.uptime()),
+      ...(job && { reminderJob: job }),
+    };
     ok(res, payload);
   });
   return router;

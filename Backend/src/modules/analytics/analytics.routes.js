@@ -15,9 +15,23 @@ const topDoctorsSchema = { query: z.object({ limit: z.coerce.number().int().min(
 
 export function createAnalyticsRoutes({ analytics }) {
   const router = Router();
-  router.get('/summary', asyncHandler(async (_req, res) => ok(res, await analytics.summary())));
-  router.get('/timeseries', validate(timeseriesSchema), asyncHandler(async (req, res) => ok(res, await analytics.timeseries(req.valid.query))));
-  router.get('/specialities', asyncHandler(async (_req, res) => ok(res, await analytics.specialities())));
-  router.get('/top-doctors', validate(topDoctorsSchema), asyncHandler(async (req, res) => ok(res, await analytics.topDoctors(req.valid.query))));
+  router.get(
+    '/summary',
+    asyncHandler(async (_req, res) => ok(res, await analytics.summary())),
+  );
+  router.get(
+    '/timeseries',
+    validate(timeseriesSchema),
+    asyncHandler(async (req, res) => ok(res, await analytics.timeseries(req.valid.query))),
+  );
+  router.get(
+    '/specialities',
+    asyncHandler(async (_req, res) => ok(res, await analytics.specialities())),
+  );
+  router.get(
+    '/top-doctors',
+    validate(topDoctorsSchema),
+    asyncHandler(async (req, res) => ok(res, await analytics.topDoctors(req.valid.query))),
+  );
   return router;
 }
