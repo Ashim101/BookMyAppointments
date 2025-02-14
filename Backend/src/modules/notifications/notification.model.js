@@ -14,5 +14,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ userId: 1, role: 1, read: 1, createdAt: -1 });
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 120 * 86_400 });
 
 export const Notification = mongoose.model('Notification', notificationSchema);

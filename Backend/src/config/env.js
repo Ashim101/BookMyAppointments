@@ -45,6 +45,8 @@ const schema = z
 
     CORS_ORIGINS: csv('http://localhost:5173,http://localhost:5174'),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
+    LOGIN_MAX_FAILURES: z.coerce.number().int().min(1).default(10),
+    LOGIN_LOCKOUT_MINUTES: z.coerce.number().min(0.01).default(15),
     AUTH_RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().min(0.01).default(15),
 
     CLINIC_TIMEZONE: z.string().default('Asia/Kathmandu').refine(isValidZone, 'unknown IANA timezone'),
@@ -123,6 +125,7 @@ export function loadConfig(source = process.env) {
     },
     admin: { email: e.ADMIN_EMAIL?.toLowerCase() ?? null, passwordHash: e.ADMIN_PASSWORD_HASH ?? null },
     corsOrigins: e.CORS_ORIGINS,
+    loginLockout: { maxFailures: e.LOGIN_MAX_FAILURES, durationMs: Math.round(e.LOGIN_LOCKOUT_MINUTES * 60_000) },
     authRateLimit: { max: e.AUTH_RATE_LIMIT_MAX, windowMs: Math.round(e.AUTH_RATE_LIMIT_WINDOW_MINUTES * 60_000) },
     clinic: {
       timezone: e.CLINIC_TIMEZONE,

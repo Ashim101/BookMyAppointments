@@ -19,8 +19,10 @@ export function createPatientService({ storage, tokens }) {
     if (input.dob !== undefined) changes.dob = input.dob === '' ? null : input.dob;
     if (file) changes.image = await storage.saveImage(file);
 
+    const previous = file ? await Patient.findById(id).select('image').lean() : null;
     const patient = await Patient.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', runValidators: true });
     if (!patient) throw notFound('Patient');
+    await storage.removeImage(previous?.image);
     return toPatientDto(patient);
   }
 

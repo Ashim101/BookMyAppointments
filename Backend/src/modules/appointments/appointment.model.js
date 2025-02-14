@@ -50,6 +50,7 @@ const appointmentSchema = new mongoose.Schema(
       paidAt: Date,
       refundId: String,
       refundedAt: Date,
+      refundAttemptAt: Date,
     },
     cancellation: {
       type: new mongoose.Schema(

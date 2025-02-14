@@ -12,3 +12,13 @@ export const reminderEmail = ({ doctorName, date, time, timezone }) => ({
   subject: `Reminder: appointment with ${doctorName} on ${date} at ${time}`,
   text: `This is a reminder of your appointment with ${doctorName} on ${date} at ${time} (${timezone}).`,
 });
+
+export const bookingEmail = ({ doctorName, date, time, timezone }) => ({
+  subject: `Appointment confirmed: ${doctorName} on ${date} at ${time}`,
+  text: `Your appointment with ${doctorName} is booked for ${date} at ${time} (${timezone}).`,
+});
+
+export const cancellationEmail = ({ doctorName, date, time, by, reason }) => ({
+  subject: `Appointment cancelled: ${doctorName} on ${date}`,
+  text: `Your appointment with ${doctorName} on ${date} at ${time} was cancelled by the ${by}.${reason ? `\nReason: ${reason}` : ''}`,
+});

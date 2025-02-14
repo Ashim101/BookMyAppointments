@@ -10,7 +10,7 @@ import { toAuthUser } from './principals.js';
 const RESET_TTL_MS = 30 * 60_000;
 const MODELS = { patient: Patient, doctor: Doctor };
 
-export function createAuthService({ config, clock, tokens, otp, principals, mailer, googleVerifier, logger }) {
+export function createAuthService({ config, clock, tokens, otp, principals, loginGuard, mailer, googleVerifier, logger }) {
   const invalidCredentials = () => new AppError('INVALID_CREDENTIALS', 'Incorrect email or password');
   let decoyHash;
 
@@ -55,12 +55,22 @@ export function createAuthService({ config, clock, tokens, otp, principals, mail
     return principals.admin;
   }
 
-  async function login({ email, password, role }, meta) {
-    if (role === 'admin') return startSession(await loginAdmin(email, password), meta);
-
+  async function loginAccount(role, email, password) {
     const account = await MODELS[role].findOne({ email }).select('+passwordHash');
     if (!(await checkPassword(password, account?.passwordHash))) throw invalidCredentials();
-    const principal = await principals.load(role, String(account._id));
+    return principals.load(role, String(account._id));
+  }
+
+  async function login({ email, password, role }, meta) {
+    await loginGuard.assertNotLocked(role, email);
+    let principal;
+    try {
+      principal = role === 'admin' ? await loginAdmin(email, password) : await loginAccount(role, email, password);
+    } catch (err) {
+      if (err.code === 'INVALID_CREDENTIALS') await loginGuard.recordFailure(role, email);
+      throw err;
+    }
+    await loginGuard.recordSuccess(role, email);
     return startSession(principal, meta);
   }
 

@@ -5,6 +5,7 @@ import { Patient } from '../patients/patient.model.js';
 import { Speciality } from '../specialities/speciality.model.js';
 import { Appointment, patientKey, slotKey } from './appointment.model.js';
 import { toAppointmentDto } from './appointment.dto.js';
+import { bookingEmail, cancellationEmail } from '../notifications/templates.js';
 import { assertAllowed, computeActions } from './stateMachine.js';
 
 const RELEASE_KEYS = { activeSlotKey: '', activePatientKey: '' };
@@ -24,8 +25,11 @@ function translateDuplicate(err) {
   return new AppError('SLOT_TAKEN', 'That slot has just been taken. Please choose another.');
 }
 
-export function createAppointmentService({ settings, scheduling, notifications, refunds, clock }) {
+export function createAppointmentService({ settings, scheduling, notifications, refunds, mailer, clock, logger }) {
   const nowMs = () => clock.now();
+
+  /** Emails never block or fail the action that triggered them. */
+  const email = (to, template) => mailer.send({ to, ...template }).catch((err) => logger.warn({ err }, 'appointment email failed'));
 
   async function serialize(appointment, user, settingsValue) {
     const ctx = { appointment, user, now: nowMs(), settings: settingsValue ?? (await settings.get()) };
@@ -92,6 +96,7 @@ export function createAppointmentService({ settings, scheduling, notifications, 
           link: `/appointments/${appointment._id}`,
         },
       );
+      await email(patient.email, bookingEmail({ doctorName: doctor.name, date, time, timezone: slot.timezone }));
       return serialize(appointment, user);
     } catch (err) {
       throw translateDuplicate(err);
@@ -144,7 +149,7 @@ export function createAppointmentService({ settings, scheduling, notifications, 
         $set: {
           status: 'cancelled',
           cancellation: { by, reason, at: new Date(nowMs()) },
-          ...(refundable && { paymentStatus: 'refund_pending' }),
+          ...(refundable && { paymentStatus: 'refund_pending', 'payment.refundAttemptAt': new Date(nowMs()) }),
         },
         $unset: RELEASE_KEYS,
       },
@@ -159,6 +164,9 @@ export function createAppointmentService({ settings, scheduling, notifications, 
     const recipients = [];
     if (by !== 'patient') recipients.push({ id: appointment.patient, role: 'patient' });
     if (by !== 'doctor') recipients.push({ id: appointment.doctor, role: 'doctor' });
+    if (by !== 'patient') {
+      await email(appointment.patientInfo.email, cancellationEmail({ doctorName: appointment.doctorInfo.name, date: appointment.date, time: appointment.time, by, reason }));
+    }
     await Promise.all(
       recipients.map((recipient) =>
         notifications.notify(recipient, {

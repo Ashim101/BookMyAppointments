@@ -6,6 +6,9 @@ import { Payment } from './payment.model.js';
  * `refund_pending`; the refund completes immediately with the mock provider, or
  * later through the provider's `refund.processed` webhook.
  */
+const RETRY_AFTER_MS = 5 * 60_000;
+const MAX_RETRIES_PER_SWEEP = 25;
+
 export function createRefundService({ provider, clock, logger }) {
   async function markRefunded(appointmentId, refundId) {
     const now = new Date(clock.now());
@@ -33,5 +36,31 @@ export function createRefundService({ provider, clock, logger }) {
     return appointment;
   }
 
-  return { settle, markRefunded };
+  /**
+   * Retries refunds whose provider call failed (no refund id was ever recorded). Each appointment
+   * is claimed atomically and at most once per RETRY_AFTER_MS, so concurrent sweeps never refund twice.
+   */
+  async function retryPending() {
+    const now = new Date(clock.now());
+    const stale = new Date(now.getTime() - RETRY_AFTER_MS);
+    let retried = 0;
+    while (retried < MAX_RETRIES_PER_SWEEP) {
+      const claimed = await Appointment.findOneAndUpdate(
+        {
+          paymentStatus: 'refund_pending',
+          'payment.refundId': null,
+          'payment.paymentId': { $ne: null },
+          $or: [{ 'payment.refundAttemptAt': null }, { 'payment.refundAttemptAt': { $lte: stale } }],
+        },
+        { $set: { 'payment.refundAttemptAt': now } },
+        { returnDocument: 'after' },
+      );
+      if (!claimed) break;
+      await settle(claimed);
+      retried += 1;
+    }
+    return retried;
+  }
+
+  return { settle, markRefunded, retryPending };
 }
