@@ -100,6 +100,10 @@ export function hoursUntil(iso, now = new Date()) {
   return (new Date(iso).getTime() - now.getTime()) / 3_600_000
 }
 
+export function shiftHours(iso, hours) {
+  return new Date(new Date(iso).getTime() + hours * 3_600_000).toISOString()
+}
+
 export function initials(name = '') {
   const words = name.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?)\s+/i, '').trim().split(/\s+/).filter(Boolean)
   if (words.length === 0) return '?'
