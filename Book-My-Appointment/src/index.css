@@ -43,9 +43,7 @@
 }
 
 @media print {
-  .no-print,
-  header,
-  footer {
+  .no-print {
     display: none !important;
   }
 
