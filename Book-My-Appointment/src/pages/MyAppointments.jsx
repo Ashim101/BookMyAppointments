@@ -1,130 +1,99 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import { doctorActions } from '../store/DoctorSlice';
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { FiCalendar } from 'react-icons/fi'
+import { listAppointments } from '../api/appointments'
+import AppointmentCard from '../components/appointments/AppointmentCard'
+import CancelModal from '../components/appointments/CancelModal'
+import RescheduleModal from '../components/appointments/RescheduleModal'
+import ReviewModal from '../components/appointments/ReviewModal'
+import { ButtonLink } from '../components/ui/Button'
+import EmptyState, { ErrorState } from '../components/ui/EmptyState'
+import Pagination from '../components/ui/Pagination'
+import Skeleton from '../components/ui/Skeleton'
+import Tabs from '../components/ui/Tabs'
+import { usePayment } from '../features/payments/usePayment'
+import { useQuery } from '../hooks/useQuery'
+import { usePageTitle } from '../hooks/usePageTitle'
 
-const MyAppointments = () => {
-    const { token, backendUrl } = useSelector((store) => store.settings);
-    const [appointments, setAppointments] = useState([]);
-    const [error, setError] = useState(null);
-    const dispatch = useDispatch()
+const TABS = [
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'past', label: 'Past' },
+  { id: 'cancelled', label: 'Cancelled' },
+]
+const FILTERS = { upcoming: { scope: 'upcoming' }, past: { scope: 'past' }, cancelled: { status: 'cancelled' } }
+const EMPTY = {
+  upcoming: 'You have no upcoming appointments.',
+  past: 'Completed and missed visits will show up here.',
+  cancelled: 'You have not cancelled any appointments.',
+}
 
-    const fetchDoctors = async () => {
-        try {
-            const response = await axios.get(`${backendUrl}api/doctor/list`);
-            if (response.data.success) {
-                dispatch(doctorActions.initializetheDoctors(response.data.doctors));
-            }
-        } catch (error) {
-        }
-    };
+export default function MyAppointments() {
+  usePageTitle('My appointments')
+  const [params, setParams] = useSearchParams()
+  const tab = FILTERS[params.get('tab')] ? params.get('tab') : 'upcoming'
+  const page = Math.max(1, Number(params.get('page')) || 1)
+  const [dialog, setDialog] = useState({ type: null, appointment: null })
 
-    const fetchAppointments = async () => {
-        try {
-            const { data } = await axios.get(`${backendUrl}api/user/appointments`, {
-                headers: {
-                    token
-                }
-            });
+  const { data, error, loading, refetch } = useQuery(['my-appointments', tab, page], () =>
+    listAppointments({ ...FILTERS[tab], page, limit: 6 }),
+  )
+  const payment = usePayment({ onPaid: refetch })
 
-            if (data.success) {
-                setAppointments(data.appointments);
-                console.log(data.appointments);
-            } else {
-                toast.error(data.message);
-                setError(data.message); // Set the error message if fetching fails
-            }
-        } catch (e) {
-            setError(e.response?.data?.message || 'Error fetching appointments.');
-        }
-    };
+  const close = () => setDialog({ type: null, appointment: null })
+  const done = () => {
+    close()
+    refetch()
+  }
+  const open = (type) => (appointment) => setDialog({ type, appointment })
+  const go = (next) => setParams(next, { replace: true })
 
-    useEffect(() => {
-        if (token && backendUrl) {
-            fetchAppointments();
-        }
-    }, [token, backendUrl]); // Add token and backendUrl to dependencies if needed
-
-    if (error) {
-        return <p>{error}</p>; // Display error message if it exists
-    }
-
-    if (!appointments.length) {
-        return <p>No appointments found.</p>;  // Display this if no appointments are fetched
-    }
-
-    // Function to format the date as "day, month-name, year"
-    const formatDate = (dateString) => {
-        // Split the date into day, month, and year
-        const [day, month, year] = dateString.split('_');
-
-        // Create a new Date object with the correct format
-        const date = new Date(`${month}-${day}-${year}`);
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return date.toLocaleDateString('en-US', options);
-    };
-
-    const handleCancelAppointment = async (appointmentId) => {
-        try {
-            const { data } = await axios.delete(
-                backendUrl + "api/user/cancel-appointment",
-                {
-                    data: { appointmentId },  // The 'data' field holds the payload
-                    headers: { token }         // Include the token in headers
-                }
-            ); if (data.success) {
-                toast.success(data.message)
-                fetchAppointments()
-                fetchDoctors()
-            }
-
-        } catch (error) {
-
-            toast.error(error.response.message)
-            console.log(error.response.message)
-        }
-
-    }
-
-    return (
-        <div className="p-4">
-            <h2 className="text-2xl font-bold mb-4">My Appointments</h2>
-            {appointments.map((appointment, index) => (
-                <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
-                    <div className="flex items-center">
-                        {/* Doctor's Image */}
-                        <img
-                            src={appointment.docData.image}
-                            alt={appointment.docData.name}
-                            className="w-20 h-20 rounded-full mr-4"
-                        />
-                        {/* Doctor's Information */}
-                        <div>
-                            <h3 className="text-xl font-semibold">Name:{appointment.docData.name}</h3>
-                            <p className="text-sm text-gray-500">{appointment.docData.specialty}</p>
-                            <p className="text-sm">Address: {appointment.docData.address?.line1}</p>
-                            <p className="text-sm">{appointment.docData.address?.line2}</p>
-                            <p className="text-sm">
-                                Date & Time: {formatDate(appointment.slotDate)} {appointment.slotTime}
-                            </p>
-                        </div>
-                    </div>
-                    {/* Action Buttons */}
-                    <div className="flex justify-end mt-4">
-                        {!appointment.payment && (!appointment.cancelled) && !appointment.isCompleted && (
-                            <button className="bg-blue-500 text-white px-4 py-2 rounded-md mr-2">
-                                Pay Here
-                            </button>
-                        )}
-                        <button disabled={appointment.cancelled || appointment.isCompleted} onClick={() => handleCancelAppointment(appointment._id)} className="bg-gray-500 text-white px-4 py-2 rounded-md">
-                            {appointment.cancelled || appointment.isCompleted ? 'Cancelled' : 'Cancel Appointment'}
-                        </button>
-                    </div>
-                </div>
+  return (
+    <div className="mx-auto max-w-3xl">
+      <h1 className="mb-6 text-2xl font-bold text-ink-900">My appointments</h1>
+      <Tabs tabs={TABS} active={tab} onChange={(id) => go({ tab: id })} label="Appointment lists">
+        {error ? (
+          <ErrorState error={error} onRetry={refetch} />
+        ) : loading && !data ? (
+          <div className="space-y-4" aria-busy="true">
+            {[0, 1, 2].map((n) => (
+              <Skeleton key={n} className="h-44 w-full" />
             ))}
-        </div>
-    );
-};
+          </div>
+        ) : data.items.length === 0 ? (
+          <EmptyState
+            icon={<FiCalendar size={36} />}
+            title="Nothing here yet"
+            description={EMPTY[tab]}
+            action={
+              tab === 'upcoming' && (
+                <ButtonLink to="/doctors">Find a doctor</ButtonLink>
+              )
+            }
+          />
+        ) : (
+          <div className={loading ? 'opacity-60 transition-opacity' : ''}>
+            <div className="space-y-4">
+              {data.items.map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  busy={payment.busyId === appointment.id}
+                  onPay={payment.pay}
+                  onCancel={open('cancel')}
+                  onReschedule={open('reschedule')}
+                  onReview={open('review')}
+                />
+              ))}
+            </div>
+            <Pagination page={data.page} totalPages={data.totalPages} onChange={(next) => go({ tab, page: next })} />
+          </div>
+        )}
+      </Tabs>
 
-export default MyAppointments;
+      <CancelModal appointment={dialog.appointment} open={dialog.type === 'cancel'} onClose={close} onCancelled={done} />
+      <RescheduleModal appointment={dialog.appointment} open={dialog.type === 'reschedule'} onClose={close} onRescheduled={done} />
+      <ReviewModal appointment={dialog.appointment} open={dialog.type === 'review'} onClose={close} onReviewed={done} />
+      {payment.dialog}
+    </div>
+  )
+}
