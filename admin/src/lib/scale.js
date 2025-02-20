@@ -43,3 +43,17 @@ export function labelIndexes(count, max) {
 }
 
 export const maxOf = (values) => values.reduce((m, v) => (v > m ? v : m), 0)
+
+const polar = (cx, cy, r, angle) => [cx + r * Math.sin(angle), cy - r * Math.cos(angle)]
+
+/** SVG path for a donut slice between two angles (radians, clockwise from 12 o'clock). */
+export function arcPath(cx, cy, inner, outer, start, end) {
+  const sweep = Math.min(end - start, Math.PI * 2 - 0.0001)
+  const stop = start + sweep
+  const large = sweep > Math.PI ? 1 : 0
+  const [x0, y0] = polar(cx, cy, outer, start)
+  const [x1, y1] = polar(cx, cy, outer, stop)
+  const [x2, y2] = polar(cx, cy, inner, stop)
+  const [x3, y3] = polar(cx, cy, inner, start)
+  return `M${x0} ${y0}A${outer} ${outer} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${inner} ${inner} 0 ${large} 0 ${x3} ${y3}Z`
+}
