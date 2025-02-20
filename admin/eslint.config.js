@@ -33,4 +33,8 @@ export default [
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
+  {
+    files: ['src/routes/index.jsx', 'src/components/charts/parts.jsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ]
