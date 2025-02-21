@@ -39,7 +39,7 @@ export function useFetch(fetcher, deps = [], { enabled = true } = {}) {
 }
 
 /** Wraps a mutation: tracks the pending flag and reports failures with a toast. */
-export function useMutation(fn, { success } = {}) {
+export function useMutation(fn, { success, quiet } = {}) {
   const [pending, setPending] = useState(false)
   const fnRef = useRef(fn)
 
@@ -55,13 +55,13 @@ export function useMutation(fn, { success } = {}) {
         if (success) toast.success(typeof success === 'function' ? success(result) : success)
         return { ok: true, data: result }
       } catch (error) {
-        toast.error(messageFor(error))
+        if (!quiet?.(error)) toast.error(messageFor(error))
         return { ok: false, error }
       } finally {
         setPending(false)
       }
     },
-    [success],
+    [success, quiet],
   )
 
   return { run, pending }
