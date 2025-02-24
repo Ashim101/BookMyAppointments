@@ -36,7 +36,7 @@ export default function StaffLayout({ nav, topbarExtra }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-60 shrink-0 flex-col bg-slate-900 lg:flex">
+      <aside className="no-print hidden w-60 shrink-0 flex-col bg-slate-900 lg:flex">
         <div className="px-5 py-5">
           <Logo light />
         </div>
@@ -59,7 +59,7 @@ export default function StaffLayout({ nav, topbarExtra }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
+        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
           <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="rounded-md p-2 text-slate-600 hover:bg-slate-100 lg:hidden">
             <FiMenu className="h-5 w-5" />
           </button>
