@@ -21,6 +21,27 @@ export const fail = (status, code, message = 'Failure', details = []) => ({
   data: { success: false, error: { code, message, details } },
 })
 
+const matcher = (pattern) => new RegExp(`^${pattern.replace(/:[^/]+/g, '[^/]+')}$`)
+
+/**
+ * Routes requests by "METHOD /path" (with `:param` segments). A route value is a
+ * response from ok()/fail() or a function `(config) => response`. Unknown routes return 404.
+ */
+export function mockApi(routes) {
+  const table = Object.entries(routes).map(([key, value]) => {
+    const [method, path] = key.split(' ')
+    return { method, test: matcher(path), value }
+  })
+  return mockHttp((config) => {
+    const method = config.method.toUpperCase()
+    const hit = table.find((r) => r.method === method && r.test.test(config.url))
+    if (!hit) return fail(404, 'NOT_FOUND', `No mock for ${method} ${config.url}`)
+    return typeof hit.value === 'function' ? hit.value(config) : hit.value
+  })
+}
+
+export const body = (call) => JSON.parse(call.data)
+
 export const session = (overrides = {}) => ({
   accessToken: 'old',
   refreshToken: 'refresh-1',
