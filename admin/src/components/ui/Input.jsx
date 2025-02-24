@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
-import Field, { controlClass } from './Field'
+import Field from './Field'
+import { controlClass } from './controlClass'
 
 const Input = forwardRef(function Input({ label, error, hint, className = '', wrapperClass, ...rest }, ref) {
   return (
