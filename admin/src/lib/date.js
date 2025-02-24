@@ -19,6 +19,13 @@ export function addDays(iso, amount) {
 
 export const daysAgoISO = (days) => addDays(todayISO(), -days)
 
+export const RANGE_PRESETS = [
+  { label: 'Today', range: () => ({ from: todayISO(), to: todayISO() }) },
+  { label: 'Next 7 days', range: () => ({ from: todayISO(), to: addDays(todayISO(), 6) }) },
+  { label: 'Last 7 days', range: () => ({ from: daysAgoISO(6), to: todayISO() }) },
+  { label: 'Last 30 days', range: () => ({ from: daysAgoISO(29), to: todayISO() }) },
+]
+
 export const weekdayOf = (iso) => parseISODate(iso).getDay()
 
 /** Monday of the week containing `iso`. */
