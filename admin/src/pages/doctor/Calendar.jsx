@@ -5,21 +5,30 @@ import { getSchedule, listLeaves } from '../../api/doctorSelf'
 import AppointmentActions from '../../components/appointments/AppointmentActions'
 import AppointmentDetail from '../../components/appointments/AppointmentDetail'
 import PatientHistoryDrawer from '../../components/appointments/PatientHistoryDrawer'
+import AgendaList from '../../components/calendar/AgendaList'
 import WeekGrid from '../../components/calendar/WeekGrid'
 import ErrorState from '../../components/ErrorState'
 import PageHeader from '../../components/PageHeader'
 import Button from '../../components/ui/Button'
 import Drawer from '../../components/ui/Drawer'
+import Tabs from '../../components/ui/Tabs'
 import { useFetch } from '../../hooks/useFetch'
 import { calendarBounds, groupByDate } from '../../lib/calendar'
 import { addDays, formatDate, startOfWeek, timeToMinutes, todayISO, weekDates } from '../../lib/date'
 
-const isTyping = (target) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable
+const VIEWS = [
+  { id: 'week', label: 'Week grid' },
+  { id: 'agenda', label: 'Agenda' },
+]
+
+const isTyping = (target) =>
+  ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable || target.getAttribute('role') === 'tab'
 
 export default function Calendar() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(todayISO()))
   const [selected, setSelected] = useState(null)
   const [historyOf, setHistoryOf] = useState(null)
+  const [view, setView] = useState('week')
   const dates = useMemo(() => weekDates(weekStart), [weekStart])
 
   const schedule = useFetch(getSchedule)
@@ -75,14 +84,23 @@ export default function Calendar() {
       ) : schedule.loading || !schedule.data ? (
         <div className="h-96 animate-pulse rounded-xl bg-slate-100" aria-label="Loading calendar" />
       ) : (
-        <WeekGrid
-          dates={dates}
-          appointmentsByDate={groupByDate(visible)}
-          schedule={schedule.data}
-          leaves={leaves.data ?? []}
-          bounds={bounds}
-          onSelect={setSelected}
-        />
+        <>
+          <div className="mb-4">
+            <Tabs label="Calendar view" tabs={VIEWS} value={view} onChange={setView} />
+          </div>
+          {view === 'week' ? (
+            <WeekGrid
+              dates={dates}
+              appointmentsByDate={groupByDate(visible)}
+              schedule={schedule.data}
+              leaves={leaves.data ?? []}
+              bounds={bounds}
+              onSelect={setSelected}
+            />
+          ) : (
+            <AgendaList dates={dates} appointmentsByDate={groupByDate(visible)} leaves={leaves.data ?? []} onSelect={setSelected} />
+          )}
+        </>
       )}
 
       <Drawer

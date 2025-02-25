@@ -1,5 +1,5 @@
 import { positionAppointment, unavailableBlocks } from '../../lib/calendar'
-import { formatDate, formatTime, todayISO } from '../../lib/date'
+import { formatDate, formatTime, toISODate } from '../../lib/date'
 
 export const PX_PER_HOUR = 56
 
@@ -13,13 +13,15 @@ const STATUS_STYLE = {
  * Seven day columns against an hourly time axis. Appointment blocks are placed
  * by start time and duration; non-working time is shaded and leave days are marked.
  */
-export default function WeekGrid({ dates, appointmentsByDate, schedule, leaves, bounds, onSelect }) {
+export default function WeekGrid({ dates, appointmentsByDate, schedule, leaves, bounds, onSelect, now = new Date() }) {
   const { startHour, endHour } = bounds
   const view = { startHour, endHour, pxPerHour: PX_PER_HOUR }
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
   const height = (endHour - startHour) * PX_PER_HOUR
   const leaveByDate = new Map(leaves.map((l) => [l.date, l]))
-  const today = todayISO()
+  const today = toISODate(now)
+  const nowTop = ((now.getHours() * 60 + now.getMinutes()) / 60 - startHour) * PX_PER_HOUR
+  const showNow = nowTop >= 0 && nowTop <= height
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -53,6 +55,14 @@ export default function WeekGrid({ dates, appointmentsByDate, schedule, leaves, 
               {unavailableBlocks(date, schedule, view).map((b, i) => (
                 <div key={i} data-testid="unavailable" className="absolute inset-x-0 bg-slate-100/90" style={b} />
               ))}
+              {date === today && showNow && (
+                <div
+                  data-testid="now-indicator"
+                  aria-hidden="true"
+                  className="absolute inset-x-0 z-10 border-t-2 border-red-500"
+                  style={{ top: nowTop }}
+                />
+              )}
               {leave && (
                 <div data-testid="leave" title={leave.reason} className="absolute inset-0 bg-amber-100/70" />
               )}
