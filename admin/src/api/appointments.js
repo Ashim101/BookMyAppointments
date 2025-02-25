@@ -2,8 +2,6 @@ import { clean, client, download } from './client'
 
 export const listAppointments = (params) => client.get('/appointments', { params: clean(params) })
 
-export const getAppointment = (id) => client.get(`/appointments/${id}`)
-
 export const cancelAppointment = (id, reason) => client.patch(`/appointments/${id}/cancel`, { reason })
 
 export const completeAppointment = (id, body) => client.patch(`/appointments/${id}/complete`, body)
