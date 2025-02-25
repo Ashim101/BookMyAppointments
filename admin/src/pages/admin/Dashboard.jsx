@@ -6,6 +6,7 @@ import Card from '../../components/Card'
 import ErrorState from '../../components/ErrorState'
 import PageHeader from '../../components/PageHeader'
 import StatusBadge from '../../components/StatusBadge'
+import BarChart from '../../components/charts/BarChart'
 import DonutChart from '../../components/charts/DonutChart'
 import LineChart from '../../components/charts/LineChart'
 import Avatar from '../../components/ui/Avatar'
@@ -102,7 +103,7 @@ export default function Dashboard() {
         actions={<Tabs label="Interval" tabs={INTERVALS} value={interval} onChange={setGranularity} />}
       >
         <div className="mb-3">
-          <DateRangePicker {...range} onChange={(r) => setRange({ from: r.from, to: r.to })} />
+          <DateRangePicker presets {...range} onChange={(r) => setRange({ from: r.from, to: r.to })} />
         </div>
         {series.error ? (
           <ErrorState error={series.error} onRetry={series.reload} />
@@ -117,6 +118,25 @@ export default function Dashboard() {
             series={[
               { key: 'appointments', label: 'Appointments' },
               { key: 'revenue', label: 'Revenue', axis: 'right', axisFormat: formatCompact, format: (v) => formatCurrency(v) },
+            ]}
+          />
+        )}
+      </Card>
+
+      <Card title="Outcomes by period" className="mt-6">
+        {series.error ? (
+          <ErrorState error={series.error} onRetry={series.reload} />
+        ) : (
+          <BarChart
+            label="Appointment outcomes by period"
+            stacked
+            data={(series.data ?? []).map((p) => ({ ...p, other: p.appointments - p.completed - p.cancelled }))}
+            xKey="period"
+            xFormat={(p) => formatPeriod(p, interval)}
+            series={[
+              { key: 'completed', label: 'Completed', color: '#059669' },
+              { key: 'cancelled', label: 'Cancelled', color: '#dc2626' },
+              { key: 'other', label: 'Booked or no-show', color: '#94a3b8' },
             ]}
           />
         )}
