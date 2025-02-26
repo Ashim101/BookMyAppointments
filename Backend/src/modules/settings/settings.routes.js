@@ -37,3 +37,16 @@ export function createSettingsAdminRoutes({ settings, audit }) {
   );
   return router;
 }
+
+/** The subset of the settings that clients need before anyone is signed in. */
+export function createSettingsPublicRoutes({ settings }) {
+  const router = Router();
+  router.get(
+    '/public',
+    asyncHandler(async (_req, res) => {
+      const { cancellationCutoffHours, bookingWindowDays, timezone, currency } = await settings.get();
+      ok(res, { cancellationCutoffHours, bookingWindowDays, timezone, currency });
+    }),
+  );
+  return router;
+}

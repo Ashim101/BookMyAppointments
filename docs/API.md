@@ -144,6 +144,9 @@ Legend: 🔓 public · 🧑 patient · 🩺 doctor · 🛡 admin.
 - `POST /auth/password/reset` 🔓 `{ token, password }` → `null`. The token is single-use and valid for 30 minutes; all refresh tokens for the account are revoked.
 - `GET /auth/me` 🧑🩺🛡 → `AuthUser`.
 
+### Public settings
+- `GET /settings/public` 🔓 → `{ cancellationCutoffHours: number; bookingWindowDays: number; timezone: string; currency: string }`. The clinic policy that clients display: the patient app uses it for the cancellation policy text and deadline and to limit slot navigation to the booking window. Never cached by the server, so admin changes show up immediately.
+
 ### Specialities
 - `GET /specialities` 🔓 → `Speciality[]`, sorted by name.
 

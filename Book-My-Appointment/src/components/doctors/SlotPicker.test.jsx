@@ -15,8 +15,11 @@ const week1 = makeSlots(
 )
 const week2 = makeSlots([['2026-12-17', ['10:00', '10:30']]])
 
-function setup(handler, props = {}) {
-  const calls = mockApi(handler)
+const publicSettings = { cancellationCutoffHours: 24, bookingWindowDays: 14, timezone: 'Asia/Kolkata', currency: 'INR' }
+const slotCalls = (calls) => calls.filter((c) => c.url.endsWith('/slots'))
+
+function setup(handler, { settings = publicSettings, ...props } = {}) {
+  const calls = mockApi((config) => (config.url === '/settings/public' ? ok(settings) : handler(config)))
   const onSelect = vi.fn()
   render(<SlotPicker doctorId="d1" selected={null} onSelect={onSelect} {...props} />)
   return { calls, onSelect }
@@ -26,8 +29,8 @@ describe('SlotPicker', () => {
   it('fetches slots from the API and shows the clinic timezone', async () => {
     const { calls } = setup(() => ok(week1))
     expect(await screen.findByRole('button', { name: '9:00 AM' })).toBeInTheDocument()
-    expect(calls[0].url).toBe('/doctors/d1/slots')
-    expect(calls[0].params).toEqual({ from: undefined, days: 7 })
+    expect(slotCalls(calls)[0].url).toBe('/doctors/d1/slots')
+    expect(slotCalls(calls)[0].params).toEqual({ from: undefined, days: 7 })
     expect(screen.getByText(/Asia\/Kolkata \(GMT\+5:30\)/)).toBeInTheDocument()
   })
 
@@ -61,11 +64,11 @@ describe('SlotPicker', () => {
 
     await user.click(screen.getByRole('button', { name: /Next week/ }))
     expect(await screen.findByRole('button', { name: '10:30 AM' })).toBeInTheDocument()
-    expect(calls.at(-1).params.from).toBe('2026-12-17')
+    expect(slotCalls(calls).at(-1).params.from).toBe('2026-12-17')
 
     await user.click(screen.getByRole('button', { name: /Previous week/ }))
     expect(await screen.findByRole('button', { name: '2:00 PM' })).toBeInTheDocument()
-    expect(calls.at(-1).params.from).toBeUndefined()
+    expect(slotCalls(calls).at(-1).params.from).toBeUndefined()
   })
 
   it('stops offering further weeks once a later week has no openings', async () => {
@@ -74,6 +77,31 @@ describe('SlotPicker', () => {
     await screen.findByRole('button', { name: '9:00 AM' })
     await user.click(screen.getByRole('button', { name: /Next week/ }))
     expect(await screen.findByText(/No times are open this week/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Next week/ })).toBeDisabled()
+  })
+
+  it('stops week navigation at the end of the booking window from the public settings', async () => {
+    const user = userEvent.setup()
+    // Window of 10 days from 2026-12-10 ends on 2026-12-20, so the week starting 2026-12-24 is out of reach.
+    const { calls } = setup((config) => ok(config.params.from === '2026-12-17' ? week2 : week1), {
+      settings: { ...publicSettings, bookingWindowDays: 10 },
+    })
+    await screen.findByRole('button', { name: '9:00 AM' })
+    const next = screen.getByRole('button', { name: /Next week/ })
+    await waitFor(() => expect(next).toBeEnabled())
+    await user.click(next)
+    expect(await screen.findByRole('button', { name: '10:30 AM' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: /Next week/ })).toBeDisabled())
+    expect(slotCalls(calls).map((c) => c.params.from)).toEqual([undefined, '2026-12-17'])
+  })
+
+  it('allows the last week when the window reaches into it', async () => {
+    const user = userEvent.setup()
+    setup((config) => ok(config.params.from === '2026-12-17' ? week2 : week1), { settings: { ...publicSettings, bookingWindowDays: 7 } })
+    await screen.findByRole('button', { name: '9:00 AM' })
+    await waitFor(() => expect(screen.getByRole('button', { name: /Next week/ })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: /Next week/ }))
+    expect(await screen.findByRole('button', { name: '10:30 AM' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Next week/ })).toBeDisabled()
   })
 
