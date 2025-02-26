@@ -20,7 +20,6 @@ The dev server starts on <http://localhost:5173>. The backend is expected at `VI
 |---|---|---|
 | `VITE_API_URL` | yes | Base URL of the backend, without a trailing slash. The app calls `${VITE_API_URL}/api`. |
 | `VITE_GOOGLE_CLIENT_ID` | no | Public Google OAuth client id. When empty, the Google sign-in button is hidden. |
-| `VITE_CANCELLATION_CUTOFF_HOURS` | no | Cutoff shown in the cancellation dialog (default `24`). Keep it equal to the backend setting `cancellationCutoffHours`; the server remains the authority. |
 
 ## Scripts
 

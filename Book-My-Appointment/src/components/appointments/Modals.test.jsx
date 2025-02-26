@@ -20,14 +20,37 @@ describe('CancelModal', () => {
     return { onClose, onCancelled }
   }
 
-  it('states the cancellation cutoff in the clinic timezone', () => {
+  const policyApi = (cancellationCutoffHours = 24) =>
+    mockApi((config) =>
+      config.url === '/settings/public'
+        ? ok({ cancellationCutoffHours, bookingWindowDays: 14, timezone: 'Asia/Kolkata', currency: 'INR' })
+        : ok(appointment),
+    )
+
+  it('states the cutoff from the public settings in the clinic timezone', async () => {
+    policyApi(24)
     setup()
     const policy = screen.getByText(/Cancellation policy/).closest('p')
-    expect(policy).toHaveTextContent('up to 24 hours before the appointment')
+    await waitFor(() => expect(policy).toHaveTextContent('up to 24 hours before the appointment'))
     expect(policy).toHaveTextContent('until 9 Dec 2026, 10:30 AM')
   })
 
+  it('follows a cutoff other than the old default', async () => {
+    policyApi(6)
+    setup()
+    const policy = screen.getByText(/Cancellation policy/).closest('p')
+    await waitFor(() => expect(policy).toHaveTextContent('up to 6 hours before the appointment'))
+    expect(policy).toHaveTextContent('until 10 Dec 2026, 4:30 AM')
+  })
+
+  it('falls back to a generic policy when the settings cannot be loaded', async () => {
+    mockApi(() => fail(500, 'INTERNAL'))
+    setup()
+    await waitFor(() => expect(screen.getByText(/Cancellation policy/).closest('p')).toHaveTextContent('only until its cancellation cutoff'))
+  })
+
   it('mentions the automatic refund only for paid appointments', () => {
+    policyApi()
     setup()
     expect(screen.queryByText(/refund will be started/)).not.toBeInTheDocument()
     setup({ appointment: { ...appointment, paymentStatus: 'paid' } })
@@ -40,7 +63,7 @@ describe('CancelModal', () => {
     setup()
     await user.click(screen.getByRole('button', { name: 'Cancel appointment', hidden: false }))
     expect(await screen.findByText('Please tell us why')).toBeInTheDocument()
-    expect(calls).toHaveLength(0)
+    expect(calls.filter((c) => c.method === 'patch')).toHaveLength(0)
   })
 
   it('sends the reason and reports the updated appointment', async () => {
@@ -52,9 +75,9 @@ describe('CancelModal', () => {
     await user.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Cancel appointment' }).at(-1))
 
     await waitFor(() => expect(onCancelled).toHaveBeenCalledWith(cancelled))
-    expect(calls[0].method).toBe('patch')
-    expect(calls[0].url).toBe('/appointments/a1/cancel')
-    expect(bodyOf(calls[0])).toEqual({ reason: 'Clash with work' })
+    const patch = calls.find((c) => c.method === 'patch')
+    expect(patch.url).toBe('/appointments/a1/cancel')
+    expect(bodyOf(patch)).toEqual({ reason: 'Clash with work' })
   })
 
   it('closes with a friendly message when the window has passed', async () => {

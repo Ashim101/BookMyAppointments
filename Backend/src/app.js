@@ -26,7 +26,7 @@ import { createPatientController } from './modules/patients/patient.controller.j
 import { createPatientAdminRoutes, createPatientRoutes } from './modules/patients/patient.routes.js';
 import { createPaymentRoutes, createPaymentWebhookRoute } from './modules/payments/payment.routes.js';
 import { createReviewAdminRoutes, createReviewController } from './modules/reviews/review.routes.js';
-import { createSettingsAdminRoutes } from './modules/settings/settings.routes.js';
+import { createSettingsAdminRoutes, createSettingsPublicRoutes } from './modules/settings/settings.routes.js';
 import {
   createSpecialityAdminRoutes,
   createSpecialityRoutes,
@@ -82,6 +82,7 @@ export function createApp({ config, logger = createLogger(config.logLevel), over
       limiter: createAuthLimiter(config),
     }),
   );
+  app.use('/api/settings', createSettingsPublicRoutes({ settings: container.settings }));
   app.use('/api/specialities', createSpecialityRoutes({ specialities: container.specialities, cache }));
   app.use(
     '/api/doctors',
