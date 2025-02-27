@@ -43,3 +43,13 @@ export async function pickSlot(scope, { day = 'first' } = {}) {
   await slot.click();
   return { label, date };
 }
+
+/** Registers a patient through the public API (OTP read from the backend mail log) so a test can start signed-out with a fresh account. */
+export async function registerPatientViaApi(request, { name, email, password }) {
+  const { waitForOtp } = await import('./mail.js');
+  const requested = await request.post(`${urls.api}/api/auth/otp/request`, { data: { email } });
+  expect(requested.status()).toBe(200);
+  const otp = await waitForOtp(email);
+  const registered = await request.post(`${urls.api}/api/auth/register`, { data: { name, email, password, otp } });
+  expect(registered.status()).toBe(200);
+}
