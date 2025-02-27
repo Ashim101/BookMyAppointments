@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "setup": "npm ci --prefix ../Backend && npm ci --prefix ../Book-My-Appointment && npm ci --prefix ../admin",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "report": "playwright show-report"
