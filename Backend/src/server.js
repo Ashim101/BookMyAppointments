@@ -26,6 +26,11 @@ async function main() {
   mongoose.connection.on('reconnected', () => logger.info('database connection restored'));
   mongoose.connection.on('error', (err) => logger.error({ err }, 'database error'));
 
+  if (config.isProduction && !config.smtp) {
+    logger.warn(
+      'SMTP_HOST is not set: OTP and password-reset emails are discarded, so patients cannot register',
+    );
+  }
   const app = createApp({ config, logger });
   const { reminderJob } = app.locals.container;
   const server = app.listen(config.port, () =>

@@ -9,18 +9,35 @@ const isValidZone = (zone) => {
   }
 };
 
-const csv = (fallback) =>
-  z
-    .string()
-    .default(fallback)
-    .transform((value) =>
-      value
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean),
-    );
+const DEFAULT_CORS_ORIGINS = 'http://localhost:5173,http://localhost:5174';
+const splitCsv = (value) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+// Values that show up in sample files and tutorials; none of them is acceptable as a production secret.
+const PLACEHOLDER_SECRET =
+  /(change[-_ ]?me|placeholder|example|dummy|not[-_ ]for[-_ ]production|replace|todo|your[-_ ]|^(.)\2+$)/i;
 
 const bool = z.enum(['true', 'false']).transform((value) => value === 'true');
+
+/** Refuses to boot a production server that still carries development defaults. */
+function validateProduction(env, ctx) {
+  const problem = (path, message) => ctx.addIssue({ code: 'custom', path: [path], message });
+  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
+    if (env[key].length < 32) problem(key, 'must be at least 32 characters in production');
+    else if (PLACEHOLDER_SECRET.test(env[key]))
+      problem(key, 'looks like a placeholder; generate a random value');
+  }
+  if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+    problem('JWT_REFRESH_SECRET', 'must differ from JWT_ACCESS_SECRET');
+  }
+  if (!env.ADMIN_PASSWORD_HASH)
+    problem('ADMIN_PASSWORD_HASH', 'required in production (npm run hash-password)');
+  if (!env.ADMIN_EMAIL) problem('ADMIN_EMAIL', 'required in production');
+  if (!env.CORS_ORIGINS) problem('CORS_ORIGINS', 'must be set explicitly in production');
+}
 
 const schema = z
   .object({
@@ -43,7 +60,9 @@ const schema = z
     ADMIN_EMAIL: z.email().optional(),
     ADMIN_PASSWORD_HASH: z.string().startsWith('$2', 'must be a bcrypt hash').optional(),
 
-    CORS_ORIGINS: csv('http://localhost:5173,http://localhost:5174'),
+    CORS_ORIGINS: z.string().optional(),
+    API_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(600),
+    API_RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().min(0.01).default(1),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
     LOGIN_MAX_FAILURES: z.coerce.number().int().min(1).default(10),
     LOGIN_LOCKOUT_MINUTES: z.coerce.number().min(0.01).default(15),
@@ -89,6 +108,7 @@ const schema = z
           ctx.addIssue({ code: 'custom', path: [key], message: 'required when PAYMENTS_MODE=razorpay' });
       }
     }
+    if (env.NODE_ENV === 'production') validateProduction(env, ctx);
     if (env.NODE_ENV === 'production' && env.PAYMENTS_MODE === 'mock' && env.RAZORPAY_KEY_ID) {
       ctx.addIssue({
         code: 'custom',
@@ -143,10 +163,14 @@ export function loadConfig(source = process.env) {
       refreshTtlDays: e.REFRESH_TOKEN_TTL_DAYS,
     },
     admin: { email: e.ADMIN_EMAIL?.toLowerCase() ?? null, passwordHash: e.ADMIN_PASSWORD_HASH ?? null },
-    corsOrigins: e.CORS_ORIGINS,
+    corsOrigins: splitCsv(e.CORS_ORIGINS ?? DEFAULT_CORS_ORIGINS),
     loginLockout: {
       maxFailures: e.LOGIN_MAX_FAILURES,
       durationMs: Math.round(e.LOGIN_LOCKOUT_MINUTES * 60_000),
+    },
+    apiRateLimit: {
+      max: e.API_RATE_LIMIT_MAX,
+      windowMs: Math.round(e.API_RATE_LIMIT_WINDOW_MINUTES * 60_000),
     },
     authRateLimit: {
       max: e.AUTH_RATE_LIMIT_MAX,

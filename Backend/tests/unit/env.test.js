@@ -7,6 +7,15 @@ const valid = {
   JWT_REFRESH_SECRET: 'b'.repeat(32),
 };
 
+const production = {
+  NODE_ENV: 'production',
+  JWT_ACCESS_SECRET: 'f3a91c0d7be24a58a6d1c93e5b7f20c8d4e6a1b9',
+  JWT_REFRESH_SECRET: '0b7d5e2f9a14c68d3e71f05a9c2b84d6e1a37f50',
+  ADMIN_EMAIL: 'owner@clinic.test',
+  ADMIN_PASSWORD_HASH: '$2b$04$abcdefghijklmnopqrstuuabcdefghijklmnopqrstuvwxyz01234',
+  CORS_ORIGINS: 'https://app.clinic.test',
+};
+
 const parseDotenv = (text) =>
   Object.fromEntries(
     text
@@ -62,9 +71,8 @@ describe('loadConfig', () => {
 
   it('parses typed values', () => {
     const config = loadConfig({
-      ...valid,
+      ...production,
       PORT: '8080',
-      NODE_ENV: 'production',
       CORS_ORIGINS: 'https://a.example, https://b.example ,',
       ADMIN_EMAIL: 'Admin@Example.com',
       CANCELLATION_CUTOFF_HOURS: '6',
@@ -107,8 +115,48 @@ describe('loadConfig', () => {
     expect(config.payments).toEqual({ mode: 'razorpay', keyId: 'k', keySecret: 's', webhookSecret: 'w' });
   });
 
+  it('accepts a complete production configuration', () => {
+    expect(loadConfig(production).isProduction).toBe(true);
+  });
+
+  it.each([
+    [
+      'placeholder secrets',
+      { JWT_ACCESS_SECRET: 'please-change-me-please-change-me-123' },
+      /JWT_ACCESS_SECRET: looks like a placeholder/,
+    ],
+    [
+      'a repeated-character secret',
+      { JWT_REFRESH_SECRET: 'a'.repeat(40) },
+      /JWT_REFRESH_SECRET: looks like a placeholder/,
+    ],
+    [
+      'short secrets',
+      { JWT_ACCESS_SECRET: 'short-but-not-obvious-value-1' },
+      /JWT_ACCESS_SECRET: must be at least 32/,
+    ],
+    [
+      'identical secrets',
+      { JWT_REFRESH_SECRET: production.JWT_ACCESS_SECRET },
+      /must differ from JWT_ACCESS_SECRET/,
+    ],
+    [
+      'a missing admin hash',
+      { ADMIN_PASSWORD_HASH: undefined },
+      /ADMIN_PASSWORD_HASH: required in production/,
+    ],
+    ['a missing admin email', { ADMIN_EMAIL: undefined }, /ADMIN_EMAIL: required in production/],
+    ['default CORS origins', { CORS_ORIGINS: undefined }, /CORS_ORIGINS: must be set explicitly/],
+  ])('refuses production with %s', (_name, override, message) => {
+    expect(() => loadConfig({ ...production, ...override })).toThrow(message);
+  });
+
+  it('allows the same development defaults outside production', () => {
+    expect(() => loadConfig({ ...valid, NODE_ENV: 'development' })).not.toThrow();
+  });
+
   it('refuses mock payments next to live keys in production', () => {
-    expect(() => loadConfig({ ...valid, NODE_ENV: 'production', RAZORPAY_KEY_ID: 'rzp_live' })).toThrow(
+    expect(() => loadConfig({ ...production, RAZORPAY_KEY_ID: 'rzp_live' })).toThrow(
       /mock payments must not run/,
     );
   });
