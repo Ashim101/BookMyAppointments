@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // The backend's default CORS allow-list expects the patient app on 5173 and this app on 5174.
+  server: { port: 5174 },
   test: {
     environment: 'jsdom',
     globals: true,
