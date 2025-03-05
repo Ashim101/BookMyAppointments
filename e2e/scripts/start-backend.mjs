@@ -5,6 +5,7 @@
 // The server runs with cwd = e2e/.run so that dotenv cannot pick up a developer's Backend/.env;
 // every setting below is passed explicitly.
 import { spawn, spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { createWriteStream, mkdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -41,7 +42,12 @@ const env = {
   AUTH_RATE_LIMIT_MAX: '5000',
   LOGIN_MAX_FAILURES: '1000',
   REMINDERS_ENABLED: 'false',
+  // Mock payments are only allowed outside production, which is why this stack runs as development.
   PAYMENTS_MODE: 'mock',
+  // CI supplies a key it generated; otherwise a fresh one per run. The database is throwaway, so nothing
+  // outlives the key and none is ever committed.
+  DATA_ENCRYPTION_KEYS: process.env.DATA_ENCRYPTION_KEYS ?? `e2e:${randomBytes(32).toString('base64')}`,
+  DATA_ENCRYPTION_ACTIVE_KEY_ID: process.env.DATA_ENCRYPTION_ACTIVE_KEY_ID ?? 'e2e',
   UPLOAD_DIR: path.join(runDir, 'uploads'),
   // Debug level makes the mailer log message bodies, which is how the tests read OTPs.
   LOG_LEVEL: 'debug',

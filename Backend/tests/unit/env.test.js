@@ -1,17 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../../src/config/env.js';
-
-const razorpayEnv = {
-  PAYMENTS_MODE: 'razorpay',
-  RAZORPAY_KEY_ID: 'rzp_test_key',
-  RAZORPAY_KEY_SECRET: 'test-key-secret',
-  RAZORPAY_WEBHOOK_SECRET: 'test-webhook-secret',
-};
+import { generateKeyEntry } from '../../src/utils/fieldCrypto.js';
+import { encryptionEnv, razorpayEnv } from '../helpers/keys.js';
 
 const valid = {
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   JWT_REFRESH_SECRET: 'b'.repeat(32),
+  ...encryptionEnv(),
 };
 
 const production = {
@@ -22,6 +18,7 @@ const production = {
   ADMIN_PASSWORD_HASH: '$2b$04$abcdefghijklmnopqrstuuabcdefghijklmnopqrstuvwxyz01234',
   CORS_ORIGINS: 'https://app.clinic.test',
   ...razorpayEnv,
+  ...encryptionEnv('prod1'),
 };
 
 const parseDotenv = (text) =>
@@ -36,11 +33,13 @@ const parseDotenv = (text) =>
   );
 
 describe('.env.example', () => {
-  it('is a valid configuration once the two JWT secrets are filled in', () => {
+  it('is a valid configuration once the JWT secrets and encryption key are filled in', () => {
     const example = parseDotenv(readFileSync(new URL('../../.env.example', import.meta.url), 'utf8'));
     expect(example.JWT_ACCESS_SECRET).toBe('');
+    expect(example.DATA_ENCRYPTION_KEYS).toBe('');
     const config = loadConfig({
       ...example,
+      ...encryptionEnv(),
       JWT_ACCESS_SECRET: 'dummy-access-secret-value',
       JWT_REFRESH_SECRET: 'dummy-refresh-secret-value',
     });
@@ -188,6 +187,57 @@ describe('loadConfig', () => {
       for (const NODE_ENV of ['development', 'test']) {
         expect(loadConfig({ ...valid, NODE_ENV, PAYMENTS_MODE: 'mock' }).payments.mode).toBe('mock');
       }
+    });
+  });
+
+  describe('data encryption keys', () => {
+    const entry = generateKeyEntry('k1');
+
+    it('exposes the key ring with the active key id', () => {
+      const config = loadConfig({
+        ...valid,
+        DATA_ENCRYPTION_KEYS: `${entry},${generateKeyEntry('k2')}`,
+        DATA_ENCRYPTION_ACTIVE_KEY_ID: 'k2',
+      });
+      expect([...config.encryption.keys.keys()]).toEqual(['k1', 'k2']);
+      expect(config.encryption.activeKeyId).toBe('k2');
+    });
+
+    it.each(['development', 'test', 'production'])('is required when NODE_ENV=%s', (NODE_ENV) => {
+      const base = NODE_ENV === 'production' ? production : valid;
+      expect(() =>
+        loadConfig({
+          ...base,
+          NODE_ENV,
+          DATA_ENCRYPTION_KEYS: undefined,
+          DATA_ENCRYPTION_ACTIVE_KEY_ID: undefined,
+        }),
+      ).toThrow(/DATA_ENCRYPTION_KEYS: Invalid input[\s\S]*DATA_ENCRYPTION_ACTIVE_KEY_ID/);
+    });
+
+    it.each([
+      [
+        'an active key id that is not in the ring',
+        { DATA_ENCRYPTION_ACTIVE_KEY_ID: 'other' },
+        /"other" is not in/,
+      ],
+      [
+        'a key that is not 32 bytes',
+        { DATA_ENCRYPTION_KEYS: 'k1:c2hvcnQ=' },
+        /key "k1" must be base64 encoding of exactly 32 bytes/,
+      ],
+      ['an entry without a key id', { DATA_ENCRYPTION_KEYS: entry.split(':')[1] }, /keyId:base64key/],
+      ['non-base64 key material', { DATA_ENCRYPTION_KEYS: 'k1:!!!not base64!!!' }, /exactly 32 bytes/],
+      ['a duplicated key id', { DATA_ENCRYPTION_KEYS: `${entry},${entry}` }, /listed twice/],
+    ])('rejects %s', (_name, override, message) => {
+      expect(() =>
+        loadConfig({
+          ...valid,
+          DATA_ENCRYPTION_KEYS: entry,
+          DATA_ENCRYPTION_ACTIVE_KEY_ID: 'k1',
+          ...override,
+        }),
+      ).toThrow(message);
     });
   });
 

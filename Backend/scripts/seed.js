@@ -1,5 +1,6 @@
 /* Seeds demo data: specialities, doctors with varied schedules and leave days, patients, and
  * appointments in every status with payments, consultations and reviews.
+ * Reasons, notes and prescriptions are encrypted with DATA_ENCRYPTION_KEYS.
  * Usage: npm run seed [-- --reset] [-- --force]   (idempotent; --reset wipes application data first) */
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
@@ -15,6 +16,7 @@ import { Payment } from '../src/modules/payments/payment.model.js';
 import { Review } from '../src/modules/reviews/review.model.js';
 import { SettingsDoc } from '../src/modules/settings/settings.model.js';
 import { Speciality } from '../src/modules/specialities/speciality.model.js';
+import { createFieldCipher, installFieldCipher, keyRingFromEnv } from '../src/utils/fieldCrypto.js';
 import { addDays, todayIn } from '../src/utils/time.js';
 
 dotenv.config({ quiet: true });
@@ -473,6 +475,8 @@ async function seedNotifications(patient, now) {
 }
 
 async function main() {
+  // Health data is written encrypted, exactly as the API writes it.
+  installFieldCipher(createFieldCipher(keyRingFromEnv()));
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 });
   await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
   if (args.has('--reset')) await reset();
