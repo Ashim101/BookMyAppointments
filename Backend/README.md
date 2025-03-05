@@ -66,7 +66,7 @@ See `.env.example` for the full, commented list. The important ones:
 | `CLINIC_TIMEZONE`, `CURRENCY`, `CANCELLATION_CUTOFF_HOURS`, `BOOKING_WINDOW_DAYS`, `DEFAULT_SLOT_MINUTES` | clinic defaults; the admin settings document overrides all but the timezone |
 | `PAYMENTS_MODE`, `RAZORPAY_*`                                                                             | `mock` or `razorpay` (keys required in that mode)                           |
 | `REMINDERS_ENABLED`, `REMINDER_INTERVAL_MINUTES`, `REMINDER_LEAD_HOURS`                                   | background job                                                              |
-| `AUTH_RATE_LIMIT_*`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES`                                        | per-IP limit on `/api/auth/*` and per-account lockout                       |
+| `API_RATE_LIMIT_*`, `AUTH_RATE_LIMIT_*`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES`                    | per-IP limits on `/api` and `/api/auth/*`, per-account lockout              |
 
 ## Layout
 
