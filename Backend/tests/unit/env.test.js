@@ -2,6 +2,13 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../../src/config/env.js';
 
+const razorpayEnv = {
+  PAYMENTS_MODE: 'razorpay',
+  RAZORPAY_KEY_ID: 'rzp_test_key',
+  RAZORPAY_KEY_SECRET: 'test-key-secret',
+  RAZORPAY_WEBHOOK_SECRET: 'test-webhook-secret',
+};
+
 const valid = {
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   JWT_REFRESH_SECRET: 'b'.repeat(32),
@@ -14,6 +21,7 @@ const production = {
   ADMIN_EMAIL: 'owner@clinic.test',
   ADMIN_PASSWORD_HASH: '$2b$04$abcdefghijklmnopqrstuuabcdefghijklmnopqrstuvwxyz01234',
   CORS_ORIGINS: 'https://app.clinic.test',
+  ...razorpayEnv,
 };
 
 const parseDotenv = (text) =>
@@ -155,10 +163,32 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...valid, NODE_ENV: 'development' })).not.toThrow();
   });
 
-  it('refuses mock payments next to live keys in production', () => {
-    expect(() => loadConfig({ ...production, RAZORPAY_KEY_ID: 'rzp_live' })).toThrow(
-      /mock payments must not run/,
-    );
+  describe('payments in production', () => {
+    it('refuses mock mode, explicit or by default, and explains why', () => {
+      for (const override of [{ PAYMENTS_MODE: 'mock' }, { PAYMENTS_MODE: undefined }]) {
+        expect(() => loadConfig({ ...production, ...override })).toThrow(
+          /PAYMENTS_MODE: must be "razorpay" in production: mock payments would mark appointments paid/,
+        );
+      }
+    });
+
+    it.each(['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'])('requires %s', (key) => {
+      expect(() => loadConfig({ ...production, [key]: undefined })).toThrow(
+        new RegExp(`${key}: required when PAYMENTS_MODE=razorpay`),
+      );
+    });
+
+    it('has no override that re-enables mock payments', () => {
+      expect(() =>
+        loadConfig({ ...production, PAYMENTS_MODE: 'mock', ALLOW_MOCK_PAYMENTS: 'true', ALLOW_MOCK: '1' }),
+      ).toThrow(/PAYMENTS_MODE/);
+    });
+
+    it('still allows mock mode in development and test', () => {
+      for (const NODE_ENV of ['development', 'test']) {
+        expect(loadConfig({ ...valid, NODE_ENV, PAYMENTS_MODE: 'mock' }).payments.mode).toBe('mock');
+      }
+    });
   });
 
   it('rejects a malformed admin hash and slot length', () => {

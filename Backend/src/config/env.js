@@ -37,6 +37,13 @@ function validateProduction(env, ctx) {
     problem('ADMIN_PASSWORD_HASH', 'required in production (npm run hash-password)');
   if (!env.ADMIN_EMAIL) problem('ADMIN_EMAIL', 'required in production');
   if (!env.CORS_ORIGINS) problem('CORS_ORIGINS', 'must be set explicitly in production');
+  if (env.PAYMENTS_MODE !== 'razorpay') {
+    problem(
+      'PAYMENTS_MODE',
+      'must be "razorpay" in production: mock payments would mark appointments paid without a charge ' +
+        '(also set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET)',
+    );
+  }
 }
 
 const schema = z
@@ -109,13 +116,6 @@ const schema = z
       }
     }
     if (env.NODE_ENV === 'production') validateProduction(env, ctx);
-    if (env.NODE_ENV === 'production' && env.PAYMENTS_MODE === 'mock' && env.RAZORPAY_KEY_ID) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['PAYMENTS_MODE'],
-        message: 'mock payments must not run alongside live keys in production',
-      });
-    }
   });
 
 export class ConfigError extends Error {
