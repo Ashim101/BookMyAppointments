@@ -1,0 +1,94 @@
+# BookMyAppointments: MongoDB, API, patient app and staff app.
+# LOCAL EVALUATION ONLY. NOT FOR PRODUCTION: NODE_ENV=development and mock payments, where any "mock_*" payment
+# is accepted without a charge. Use docker-compose.yml for anything real; it refuses mock payments.
+# This is a complete stack on its own (Compose validates ${VAR:?} per file, so it cannot be layered over the
+# production file). It still needs JWT, admin and DATA_ENCRYPTION_* values in .env, but no Razorpay keys.
+#   docker compose -f docker-compose.demo.yml up --build
+#   docker compose -f docker-compose.demo.yml --profile seed run --rm seed
+name: bookmyappointments-demo
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build: ./Backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-4000}:4000"
+    environment: &backend-env
+      NODE_ENV: development
+      PORT: 4000
+      MONGODB_URI: mongodb://mongo:27017/bookmyappointments
+      PUBLIC_URL: ${PUBLIC_API_URL:-http://localhost:4000}
+      JWT_ACCESS_SECRET: "${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}"
+      ADMIN_PASSWORD_HASH: "${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env}"
+      CORS_ORIGINS: ${PUBLIC_PATIENT_URL:-http://localhost:5173},${PUBLIC_STAFF_URL:-http://localhost:5174}
+      APP_URL_PATIENT: ${PUBLIC_PATIENT_URL:-http://localhost:5173}
+      APP_URL_ADMIN: ${PUBLIC_STAFF_URL:-http://localhost:5174}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      CLINIC_TIMEZONE: ${CLINIC_TIMEZONE:-Asia/Kathmandu}
+      CURRENCY: ${CURRENCY:-INR}
+      DATA_ENCRYPTION_KEYS: "${DATA_ENCRYPTION_KEYS:?set DATA_ENCRYPTION_KEYS in .env (keyId:base64key, see .env.example)}"
+      DATA_ENCRYPTION_ACTIVE_KEY_ID: "${DATA_ENCRYPTION_ACTIVE_KEY_ID:?set DATA_ENCRYPTION_ACTIVE_KEY_ID in .env}"
+      PAYMENTS_MODE: mock
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-BookMyAppointments <no-reply@example.com>}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    volumes:
+      - uploads:/app/uploads
+
+  patient:
+    build:
+      context: ./Book-My-Appointment
+      args:
+        VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:4000}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${PATIENT_PORT:-5173}:8080"
+
+  staff:
+    build:
+      context: ./admin
+      args:
+        VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${STAFF_PORT:-5174}:8080"
+
+  # One-off demo data: docker compose -f docker-compose.demo.yml --profile seed run --rm seed
+  seed:
+    profiles: ["seed"]
+    build: ./Backend
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment: *backend-env
+    command: ["node", "scripts/seed.js", "--force"]
+    restart: "no"
+
+volumes:
+  mongo-data:
+  uploads:

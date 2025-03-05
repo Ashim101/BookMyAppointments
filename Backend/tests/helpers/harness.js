@@ -11,6 +11,7 @@ import { loadConfig } from '../../src/config/env.js';
 import { Doctor } from '../../src/modules/doctors/doctor.model.js';
 import { Speciality } from '../../src/modules/specialities/speciality.model.js';
 import { addDays, todayIn } from '../../src/utils/time.js';
+import { encryptionEnv } from './keys.js';
 
 export const ADMIN = { email: 'admin@example.com', password: 'Admin#12345' };
 export const PASSWORD = 'Passw0rd!x';
@@ -44,6 +45,7 @@ export function makeClock(start = BASE_NOW) {
 
 export function testEnv(extra = {}) {
   return {
+    ...encryptionEnv(),
     NODE_ENV: 'test',
     MONGODB_URI: 'mongodb://127.0.0.1:27017/unused',
     JWT_ACCESS_SECRET: 'test-access-secret-0123456789',
@@ -52,6 +54,7 @@ export function testEnv(extra = {}) {
     ADMIN_EMAIL: ADMIN.email,
     ADMIN_PASSWORD_HASH: bcrypt.hashSync(ADMIN.password, 4),
     AUTH_RATE_LIMIT_MAX: '100000',
+    API_RATE_LIMIT_MAX: '100000',
     UPLOAD_DIR: path.join(os.tmpdir(), `bma-uploads-${randomBytes(4).toString('hex')}`),
     CLINIC_TIMEZONE: 'Asia/Kathmandu',
     REMINDERS_ENABLED: 'false',
@@ -60,12 +63,12 @@ export function testEnv(extra = {}) {
 }
 
 /** Boots the app against a throwaway database and returns helpers for driving it. */
-export async function startHarness({ env = {}, overrides = {}, now = BASE_NOW } = {}) {
+export async function startHarness({ env = {}, overrides = {}, now = BASE_NOW, logger } = {}) {
   const dbName = `bma_test_${randomBytes(6).toString('hex')}`;
   await connectDatabase(inject('mongoUri'), { dbName });
   const config = loadConfig(testEnv(env));
   const clock = makeClock(now);
-  const app = createApp({ config, overrides: { clock, ...overrides } });
+  const app = createApp({ config, ...(logger && { logger }), overrides: { clock, ...overrides } });
   const { container } = app.locals;
   const request = supertest(app);
 

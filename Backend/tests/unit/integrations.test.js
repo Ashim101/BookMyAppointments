@@ -29,14 +29,24 @@ vi.mock('google-auth-library', () => ({
 }));
 vi.mock('nodemailer', () => ({ default: { createTransport: mocks.createTransport } }));
 
+const { encryptionEnv, razorpayEnv } = await import('../helpers/keys.js');
 const { loadConfig } = await import('../../src/config/env.js');
 const { createStorage, assertImageContent } = await import('../../src/modules/uploads/storage.js');
 const { createGoogleVerifier } = await import('../../src/modules/auth/googleVerifier.js');
 const { createMailer } = await import('../../src/modules/notifications/mailer.js');
 const { createPaymentProvider } = await import('../../src/modules/payments/providers.js');
 
-const base = { JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32) };
+const base = { JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32), ...encryptionEnv() };
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(16)]);
+const productionEnv = {
+  NODE_ENV: 'production',
+  JWT_ACCESS_SECRET: 'f3a91c0d7be24a58a6d1c93e5b7f20c8d4e6a1b9',
+  JWT_REFRESH_SECRET: '0b7d5e2f9a14c68d3e71f05a9c2b84d6e1a37f50',
+  ADMIN_EMAIL: 'owner@clinic.test',
+  ADMIN_PASSWORD_HASH: '$2b$04$abcdefghijklmnopqrstuuabcdefghijklmnopqrstuvwxyz01234',
+  CORS_ORIGINS: 'https://app.clinic.test',
+  ...razorpayEnv,
+};
 const logger = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
 beforeEach(() => vi.clearAllMocks());
@@ -174,6 +184,23 @@ describe('mailer', () => {
     });
     expect(JSON.stringify(logger.info.mock.calls)).not.toContain('Secret body');
     expect(mailer.outbox).toEqual([]);
+  });
+
+  it('logs message bodies only outside production, at debug level', async () => {
+    mocks.createTransport.mockImplementation(() => ({
+      sendMail: async (message) => ({ message: JSON.stringify(message) }),
+    }));
+    const send = async (env) => {
+      const debug = vi.fn();
+      const mailer = createMailer({ config: loadConfig({ ...base, ...env }), logger: { ...logger, debug } });
+      await mailer.send({ to: 'x@example.com', subject: 'Code', text: 'Your code is 123456' });
+      return debug;
+    };
+    expect(await send({ NODE_ENV: 'development' })).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'Your code is 123456' }),
+      'email body',
+    );
+    expect(await send(productionEnv)).not.toHaveBeenCalled();
   });
 
   it('keeps messages in the outbox with the json transport', async () => {

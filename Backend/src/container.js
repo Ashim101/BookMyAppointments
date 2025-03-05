@@ -21,12 +21,18 @@ import { createSchedulingService } from './modules/scheduling/scheduling.service
 import { createSettingsService } from './modules/settings/settings.service.js';
 import { createSpecialityService } from './modules/specialities/speciality.service.js';
 import { createStorage } from './modules/uploads/storage.js';
+import { createFieldCipher, installFieldCipher } from './utils/fieldCrypto.js';
 
 /**
  * Wires services together. Anything that talks to the outside world (mail,
  * payments, storage, Google, the clock) can be replaced through `overrides`.
  */
 export function createContainer({ config, logger, overrides = {} }) {
+  installFieldCipher(
+    createFieldCipher(config.encryption, {
+      onFailure: (details) => logger.error(details, 'field decryption failed'),
+    }),
+  );
   const clock = overrides.clock ?? { now: () => Date.now() };
   const mailer = overrides.mailer ?? createMailer({ config, logger });
   const provider = overrides.payments ?? createPaymentProvider({ config });

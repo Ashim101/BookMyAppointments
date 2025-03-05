@@ -1,4 +1,5 @@
-const SENSITIVE = /pass|token|secret|otp|signature/i;
+// Credentials, and clinical text: the audit log is plaintext, so consultation content must never reach it.
+const SENSITIVE = /pass|token|secret|otp|signature|notes|prescription/i;
 
 const sanitize = (body) =>
   Object.fromEntries(

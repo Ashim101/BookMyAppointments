@@ -10,16 +10,32 @@ import { verifyPaymentSignature, verifyWebhookSignature } from './signature.js';
  *   refund({ paymentId, amount, currency }) -> { refundId, status: 'completed' | 'pending' }
  * Amounts are in major currency units.
  */
+
+/**
+ * The mock provider accepts any `mock_*` payment id, so it must never handle money. Configuration
+ * validation already refuses it in production; this check holds even if the provider is built directly.
+ */
+function assertNotProduction() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('The mock payment provider is disabled when NODE_ENV=production');
+  }
+}
+
 export function createMockProvider() {
   return {
     mode: 'mock',
     keyId: null,
     async createOrder() {
+      assertNotProduction();
       return { orderId: `mock_order_${randomToken(9)}` };
     },
-    verifyPayment: ({ paymentId, signature }) => paymentId.startsWith('mock_') && signature === 'mock',
+    verifyPayment: ({ paymentId, signature }) => {
+      assertNotProduction();
+      return paymentId.startsWith('mock_') && signature === 'mock';
+    },
     verifyWebhook: () => false,
     async refund() {
+      assertNotProduction();
       return { refundId: `mock_refund_${randomToken(6)}`, status: 'completed' };
     },
   };

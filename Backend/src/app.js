@@ -6,7 +6,7 @@ import { createAuditMiddleware } from './middlewares/audit.js';
 import { createAuthenticate } from './middlewares/authenticate.js';
 import { cache } from './middlewares/cache.js';
 import { createErrorHandler, notFoundHandler } from './middlewares/errorHandler.js';
-import { createAuthLimiter } from './middlewares/rateLimiters.js';
+import { createApiLimiter, createAuthLimiter } from './middlewares/rateLimiters.js';
 import { createRequestContext } from './middlewares/requestContext.js';
 import { createAdminRoutes } from './modules/admin/admin.routes.js';
 import { createAnalyticsRoutes } from './modules/analytics/analytics.routes.js';
@@ -59,6 +59,7 @@ export function createApp({ config, logger = createLogger(config.logLevel), over
 
   // The Razorpay signature covers the raw bytes, so this route is mounted before the JSON parser.
   app.use('/api/payments/webhook', createPaymentWebhookRoute({ payments: container.payments }));
+  app.use('/api', createApiLimiter(config));
   app.use(express.json({ limit: config.bodyLimit }));
   app.use('/uploads', express.static(container.storage.uploadDir, { index: false, maxAge: '7d' }));
 

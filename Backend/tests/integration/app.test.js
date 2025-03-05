@@ -200,3 +200,16 @@ describe('patient profile', () => {
     expect((await h.request.get('/api/patient/profile')).status).toBe(401);
   });
 });
+
+describe('API rate limiting', () => {
+  it('throttles the whole API per IP but never the health probe', async () => {
+    const h = await startHarness({ env: { API_RATE_LIMIT_MAX: '3' } });
+    for (let i = 0; i < 3; i += 1) expect((await h.request.get('/api/specialities')).status).toBe(200);
+    const limited = await h.request.get('/api/specialities');
+    expect(limited.status).toBe(429);
+    expect(limited.body.error.code).toBe('RATE_LIMITED');
+    expect(limited.headers['ratelimit-policy']).toBeDefined();
+    expect((await h.request.get('/api/health')).status).toBe(200);
+    await h.stop();
+  });
+});

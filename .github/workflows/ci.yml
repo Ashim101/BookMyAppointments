@@ -110,6 +110,34 @@ jobs:
           path: admin/coverage
           if-no-files-found: ignore
 
+  compose:
+    name: Compose files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the production and demo stacks
+        run: |
+          KEY="ci:$(openssl rand -base64 32)"
+          echo "::add-mask::${KEY#ci:}"
+          cat > ci.env <<EOF
+          JWT_ACCESS_SECRET=$(openssl rand -hex 32)
+          JWT_REFRESH_SECRET=$(openssl rand -hex 32)
+          ADMIN_EMAIL=owner@clinic.test
+          ADMIN_PASSWORD_HASH='\$2b\$04\$ciplaceholderciplaceholderciplaceholderciplaceholde'
+          DATA_ENCRYPTION_KEYS=${KEY}
+          DATA_ENCRYPTION_ACTIVE_KEY_ID=ci
+          RAZORPAY_KEY_ID=rzp_test_ci
+          RAZORPAY_KEY_SECRET=ci-secret
+          RAZORPAY_WEBHOOK_SECRET=ci-webhook
+          EOF
+          docker compose --env-file ci.env config --quiet
+          docker compose --env-file ci.env -f docker-compose.demo.yml config --quiet
+          # Without real payment settings the production stack must refuse to start.
+          grep -v '^RAZORPAY_' ci.env > no-payments.env
+          ! docker compose --env-file no-payments.env config --quiet
+          # The demo stack needs no Razorpay keys.
+          docker compose --env-file no-payments.env -f docker-compose.demo.yml config --quiet
+
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest
@@ -126,6 +154,12 @@ jobs:
       E2E_MONGODB_URI: mongodb://127.0.0.1:27017/bma_e2e
     steps:
       - uses: actions/checkout@v4
+      - name: Generate a data-encryption key for this run
+        run: |
+          KEY="$(openssl rand -base64 32)"
+          echo "::add-mask::${KEY}"
+          echo "DATA_ENCRYPTION_KEYS=ci:${KEY}" >> "$GITHUB_ENV"
+          echo "DATA_ENCRYPTION_ACTIVE_KEY_ID=ci" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}

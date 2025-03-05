@@ -17,10 +17,12 @@ npm run seed                  # optional demo data
 npm run dev                   # http://localhost:4000/api/health
 ```
 
-The server validates its environment with zod on start-up and exits with a readable list of problems.
+The server validates its environment with zod on start-up and exits with a readable list of problems. With
+`NODE_ENV=production` it additionally refuses placeholder, short or identical JWT secrets, a missing
+`ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` and unset `CORS_ORIGINS`.
 Optional integrations degrade cleanly: without Cloudinary, images go to `uploads/` and are served at
 `/uploads`; without SMTP, emails use nodemailer's `jsonTransport` and are logged (the body only at
-`debug` level, so OTPs and reset links are visible while developing); without a Google client id
+`debug` level outside production, so OTPs and reset links are visible while developing and never in production); without a Google client id
 `POST /auth/google` answers `400 BAD_REQUEST`; `PAYMENTS_MODE=mock` needs no keys.
 
 ### Demo data
@@ -64,7 +66,7 @@ See `.env.example` for the full, commented list. The important ones:
 | `CLINIC_TIMEZONE`, `CURRENCY`, `CANCELLATION_CUTOFF_HOURS`, `BOOKING_WINDOW_DAYS`, `DEFAULT_SLOT_MINUTES` | clinic defaults; the admin settings document overrides all but the timezone |
 | `PAYMENTS_MODE`, `RAZORPAY_*`                                                                             | `mock` or `razorpay` (keys required in that mode)                           |
 | `REMINDERS_ENABLED`, `REMINDER_INTERVAL_MINUTES`, `REMINDER_LEAD_HOURS`                                   | background job                                                              |
-| `AUTH_RATE_LIMIT_*`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES`                                        | per-IP limit on `/api/auth/*` and per-account lockout                       |
+| `API_RATE_LIMIT_*`, `AUTH_RATE_LIMIT_*`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES`                    | per-IP limits on `/api` and `/api/auth/*`, per-account lockout              |
 
 ## Layout
 
