@@ -7,6 +7,14 @@ Doctors run their calendar and consultations. Administrators manage the clinic a
 The wire contract between the three parts is [`docs/API.md`](docs/API.md). How things work inside is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); day-to-day workflow is in [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
+## Project history
+
+This project began in December 2024 as a learning exercise, built while following an online tutorial. In
+November 2026 it was rebuilt from scratch against a written API contract: none of the tutorial's code, text or
+assets remain in the current version. The earlier commits still contain the original learning-project code; the
+third-party images and asset files from that period have been removed from the git history. See
+[`CHANGELOG.md`](CHANGELOG.md) for what changed.
+
 ## Features
 
 **Patients** (`Book-My-Appointment/`)
