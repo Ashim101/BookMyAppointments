@@ -187,9 +187,39 @@ sequenceDiagram
 with two implementations. Signatures are checked with HMAC-SHA256 and `timingSafeEqual`; the webhook route is
 mounted before the JSON parser because the signature covers the raw bytes. Every state change is a conditional
 update (`paymentStatus: 'unpaid'` to `'paid'`, `'refund_pending'` to `'refunded'`), so webhook replays and a
-webhook racing the client's verify call are harmless. Mock mode is refused next to live keys in production.
+webhook racing the client's verify call are harmless. Mock mode is refused in production twice over: configuration
+validation requires `PAYMENTS_MODE=razorpay` with all three keys, and the mock provider throws if `NODE_ENV=production`
+even when constructed directly. No setting re-enables it.
 Cancelling a paid appointment sets `refund_pending`; the mock provider completes it immediately, Razorpay either
 immediately or through the `refund.processed` webhook.
+
+### Data protection
+
+The appointment `reason`, the consultation `notes` and the `prescription` are health data and are encrypted at the
+application level, so a database dump, backup or stolen disk does not expose them.
+
+- **Format.** AES-256-GCM through Node `crypto`. Each value gets a random 12-byte IV and is stored as
+  `enc:v1:<keyId>:<iv>:<tag>:<data>` (base64url). The auth tag is verified on every read, and the key id is bound
+  into the tag as additional authenticated data. The prescription array is serialised to JSON first. Empty values
+  stay empty.
+- **Boundary.** The three paths are Mongoose types (`utils/encryptedFields.js`) whose setters encrypt and getters
+  decrypt, so the services, the DTO and the API contract see plaintext and the stored form never leaks upward.
+  Update queries (`$set` of `consultation`) pass through the same setters. Because the database holds ciphertext,
+  these fields cannot be searched or aggregated; no endpoint needs to.
+- **Key ring.** `DATA_ENCRYPTION_KEYS` is a list of `keyId:base64key` entries (32 bytes each) and
+  `DATA_ENCRYPTION_ACTIVE_KEY_ID` picks the key used for writes. Reads use whichever key the value names. The ring is
+  parsed and validated at start-up in every environment, and keys exist only in the environment.
+- **Rotation.** Add a new key beside the old ones, make it active, restart, and run `npm run encrypt-existing`. The
+  script reads the raw collection, encrypts any remaining plaintext and re-encrypts values under non-active keys,
+  conditional on the value it read so a concurrent edit is never overwritten. It is idempotent. Retire the old key
+  once a run reports nothing moved.
+- **Failure.** Tampered ciphertext, a malformed value, plaintext where ciphertext is expected, or an unknown key id
+  raises an `EncryptionError`, logs `field decryption failed` with the key id, and surfaces as a 500. Nothing falls
+  back to a guess. The audit middleware drops `notes` and `prescription` from recorded request bodies, and notification
+  and email texts never include them.
+- **Not covered.** Names, emails, phone numbers and dates of birth are still plaintext (they are needed for lookup),
+  as are the cancellation and review texts. Ciphertext is not bound to its document, so someone with write access to
+  the database could swap two stored values; protection against that is database access control.
 
 ### Reminder and refund job
 
@@ -237,7 +267,9 @@ data tables with drawers and confirm dialogs, and the CSV export (a blob downloa
 
 ## Delivery
 
-`docker-compose.yml` runs `mongo`, `backend` (non-root, health check on `/api/health`), and the two SPAs as nginx
+`docker-compose.yml` is the production stack: it requires Razorpay and encryption settings and fails with a message
+when they are missing. `docker-compose.demo.yml` is a separate stack for local evaluation with mock payments. It runs
+`mongo`, `backend` (non-root, health check on `/api/health`), and the two SPAs as nginx
 images with a single-page-app fallback; the API URL is compiled into the SPAs at build time. CI
 (`.github/workflows/ci.yml`) lints, tests with coverage and builds each app, audits production dependencies, and
 runs the Playwright suite against the real stack.
