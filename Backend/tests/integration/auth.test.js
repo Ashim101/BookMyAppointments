@@ -273,7 +273,8 @@ describe('refresh token lifecycle', () => {
     expect(await RefreshToken.countDocuments({ userId: patient.id, revokedAt: null })).toBe(0);
 
     const refresh = await h.request.post('/api/auth/refresh').send({ refreshToken: patient.refreshToken });
-    expect(refresh.status).toBe(401);
+    expect(refresh.status).toBe(403);
+    expect(refresh.body.error.code).toBe('ACCOUNT_BLOCKED');
     const api = await h.request.get('/api/auth/me').set(h.bearer(patient.token));
     expect(api.status).toBe(403);
     expect(api.body.error.code).toBe('ACCOUNT_BLOCKED');
@@ -291,7 +292,8 @@ describe('refresh token lifecycle', () => {
     await h.request.patch(`/api/admin/doctors/${doctor.id}/active`).set(h.bearer(admin.token)).send({ active: false }).expect(200);
     expect(await RefreshToken.countDocuments({ userId: doctor.id, revokedAt: null })).toBe(0);
     const refresh = await h.request.post('/api/auth/refresh').send({ refreshToken: doctor.session.refreshToken });
-    expect(refresh.status).toBe(401);
+    expect(refresh.status).toBe(403);
+    expect(refresh.body.error.code).toBe('ACCOUNT_BLOCKED');
     const login = await h.request.post('/api/auth/login').send({ email: doctor.email, password: PASSWORD, role: 'doctor' });
     expect(login.body.error.code).toBe('ACCOUNT_BLOCKED');
     expect((await h.request.get('/api/doctor/profile').set(h.bearer(doctor.token))).status).toBe(403);

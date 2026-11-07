@@ -97,7 +97,14 @@ export function createAuthService({ config, clock, tokens, otp, principals, logi
   }
 
   async function refresh({ refreshToken }, meta) {
-    const { userId, role, family } = await tokens.consume(refreshToken);
+    let consumed;
+    try {
+      consumed = await tokens.consume(refreshToken);
+    } catch (err) {
+      if (err.owner) await principals.load(err.owner.role, err.owner.userId);
+      throw err;
+    }
+    const { userId, role, family } = consumed;
     let principal;
     try {
       principal = await principals.load(role, userId);
