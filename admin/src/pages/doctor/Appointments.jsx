@@ -78,7 +78,7 @@ export default function Appointments() {
           Clear filters
         </Button>
         <div className="sm:col-span-2 lg:col-span-4">
-          <DateRangePicker from={filters.from} to={filters.to} onChange={(r) => update({ from: r.from, to: r.to })} />
+          <DateRangePicker presets from={filters.from} to={filters.to} onChange={(r) => update({ from: r.from, to: r.to })} />
         </div>
       </div>
 

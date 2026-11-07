@@ -32,6 +32,7 @@ export default function Settings() {
   if (loading || !values) return <div className="h-64 animate-pulse rounded-xl bg-slate-100" aria-label="Loading settings" />
 
   const set = (key) => (e) => setValues({ ...values, [key]: e.target.value })
+  const dirty = JSON.stringify(values) !== JSON.stringify(toForm(data))
 
   const submit = async (event) => {
     event.preventDefault()
@@ -85,8 +86,19 @@ export default function Settings() {
             onChange={(e) => setValues({ ...values, currency: e.target.value.toUpperCase() })}
           />
           <Input label="Timezone" value={data.timezone} readOnly disabled hint="Set on the server and cannot be changed here." />
-          <div className="flex items-end justify-end sm:col-span-2">
-            <Button type="submit" loading={save.pending}>
+          <div className="flex items-center justify-end gap-3 sm:col-span-2">
+            {dirty && <span className="text-xs text-amber-700">Unsaved changes</span>}
+            <Button
+              variant="secondary"
+              disabled={!dirty}
+              onClick={() => {
+                setValues(toForm(data))
+                setErrors({})
+              }}
+            >
+              Reset
+            </Button>
+            <Button type="submit" loading={save.pending} disabled={!dirty}>
               Save settings
             </Button>
           </div>
