@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
-import Field, { controlClass } from './Field'
+import Field from './Field'
+import { controlClass } from './controlClass'
 
 const Textarea = forwardRef(function Textarea(
   { label, error, hint, rows = 3, className = '', wrapperClass, ...rest },

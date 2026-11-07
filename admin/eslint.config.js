@@ -10,7 +10,13 @@ export default [
     files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: { ...globals.browser, ...globals.node, ...globals.vitest },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...Object.fromEntries(
+          ['describe', 'it', 'test', 'expect', 'vi', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll'].map((n) => [n, 'readonly']),
+        ),
+      },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },

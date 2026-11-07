@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
-import Field, { controlClass } from './Field'
+import Field from './Field'
+import { controlClass } from './controlClass'
 
 /** `options` is a list of `{ value, label }`; use `placeholder` for an empty first option. */
 const Select = forwardRef(function Select(
