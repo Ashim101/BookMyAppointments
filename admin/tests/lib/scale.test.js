@@ -1,4 +1,4 @@
-import { bandScale, labelIndexes, linearScale, maxOf, niceTicks } from '../../src/lib/scale'
+import { bandScale, labelIndexes, linearScale, niceTicks } from '../../src/lib/scale'
 
 describe('linearScale', () => {
   it('maps the domain onto the range', () => {
@@ -57,10 +57,5 @@ describe('labelIndexes', () => {
 
   it('thins labels with a stride', () => {
     expect(labelIndexes(10, 4)).toEqual([0, 3, 6, 9])
-  })
-
-  it('finds the maximum', () => {
-    expect(maxOf([1, 9, 3])).toBe(9)
-    expect(maxOf([])).toBe(0)
   })
 })

@@ -42,8 +42,6 @@ export function labelIndexes(count, max) {
   return all.filter((i) => i % stride === 0)
 }
 
-export const maxOf = (values) => values.reduce((m, v) => (v > m ? v : m), 0)
-
 const polar = (cx, cy, r, angle) => [cx + r * Math.sin(angle), cy - r * Math.cos(angle)]
 
 /** SVG path for a donut slice between two angles (radians, clockwise from 12 o'clock). */
