@@ -22,8 +22,11 @@ export const notFoundHandler = (req, res) =>
 
 export const createErrorHandler = (logger) =>
   // Express identifies error handlers by their four-argument signature.
-  // eslint-disable-next-line no-unused-vars
   (err, req, res, _next) => {
+    if (res.headersSent) {
+      logger.error({ err, requestId: req.id }, 'error after response started');
+      return res.destroy();
+    }
     const known = normalize(err);
     if (known) return fail(res, known.status, known.code, known.message, known.details);
     logger.error({ err, requestId: req.id }, 'unhandled error');
