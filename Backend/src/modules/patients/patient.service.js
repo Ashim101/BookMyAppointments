@@ -19,7 +19,7 @@ export function createPatientService({ storage, tokens }) {
     if (input.dob !== undefined) changes.dob = input.dob === '' ? null : input.dob;
     if (file) changes.image = await storage.saveImage(file);
 
-    const patient = await Patient.findByIdAndUpdate(id, { $set: changes }, { new: true, runValidators: true });
+    const patient = await Patient.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', runValidators: true });
     if (!patient) throw notFound('Patient');
     return toPatientDto(patient);
   }
@@ -48,7 +48,7 @@ export function createPatientService({ storage, tokens }) {
   }
 
   async function setBlocked(id, blocked) {
-    const patient = await Patient.findByIdAndUpdate(id, { $set: { blocked } }, { new: true });
+    const patient = await Patient.findByIdAndUpdate(id, { $set: { blocked } }, { returnDocument: 'after' });
     if (!patient) throw notFound('Patient');
     if (blocked) await tokens.revokeAll(id, 'patient');
     return toPatientDto(patient);

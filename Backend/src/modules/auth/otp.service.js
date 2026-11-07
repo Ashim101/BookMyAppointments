@@ -34,7 +34,7 @@ export function createOtpService({ config, clock, mailer }) {
 
   /** Verifies and consumes a code; throws OTP_INVALID / OTP_EXPIRED otherwise. */
   async function verify(email, code) {
-    const record = await Otp.findOneAndUpdate({ email, attempts: { $lt: OTP_MAX_ATTEMPTS } }, { $inc: { attempts: 1 } }, { new: true });
+    const record = await Otp.findOneAndUpdate({ email, attempts: { $lt: OTP_MAX_ATTEMPTS } }, { $inc: { attempts: 1 } }, { returnDocument: 'after' });
     if (!record) {
       const exists = await Otp.exists({ email });
       throw new AppError('OTP_INVALID', exists ? 'Too many attempts. Request a new code.' : 'No code was requested for this email');

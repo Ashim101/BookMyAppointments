@@ -43,7 +43,7 @@ export function createReminderJob({ config, clock, mailer, notifications, logger
       const claimed = await Appointment.findOneAndUpdate(
         { status: 'booked', reminderSentAt: null, startsAt: { $gt: now, $lte: horizon } },
         { $set: { reminderSentAt: now } },
-        { sort: { startsAt: 1 }, new: true },
+        { sort: { startsAt: 1 }, returnDocument: 'after' },
       );
       if (!claimed) break;
       await remind(claimed);

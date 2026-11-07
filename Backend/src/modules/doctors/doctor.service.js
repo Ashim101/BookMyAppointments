@@ -112,7 +112,7 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
     const changes = { ...input };
     if (file) changes.image = await storage.saveImage(file);
     try {
-      const doctor = await Doctor.findByIdAndUpdate(id, { $set: changes }, { new: true, runValidators: true });
+      const doctor = await Doctor.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', runValidators: true });
       if (!doctor) throw notFound('Doctor');
       return await presentOne(doctor, toAdminDto);
     } catch (err) {
@@ -122,7 +122,7 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
   }
 
   async function updateField(id, changes) {
-    const doctor = await Doctor.findByIdAndUpdate(id, { $set: changes }, { new: true });
+    const doctor = await Doctor.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after' });
     if (!doctor) throw notFound('Doctor');
     return doctor;
   }

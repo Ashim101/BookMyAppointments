@@ -148,7 +148,7 @@ export function createAppointmentService({ settings, scheduling, notifications, 
         },
         $unset: RELEASE_KEYS,
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (!cancelled) throw new AppError('INVALID_STATE', 'The appointment was changed by someone else. Please reload and try again.');
     return refundable ? refunds.settle(cancelled) : cancelled;
@@ -217,7 +217,7 @@ export function createAppointmentService({ settings, scheduling, notifications, 
           },
           $inc: { rescheduleCount: 1 },
         },
-        { new: true },
+        { returnDocument: 'after' },
       );
       if (!moved) throw new AppError('INVALID_STATE', 'The appointment was changed by someone else. Please reload and try again.');
       await notifications.notify(
@@ -242,7 +242,7 @@ export function createAppointmentService({ settings, scheduling, notifications, 
     const done = await Appointment.findOneAndUpdate(
       { _id: appointment._id, status: 'booked' },
       { $set: { status: 'completed', consultation: { notes, prescription, completedAt: now } } },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (!done) throw new AppError('INVALID_STATE', 'The appointment is no longer booked');
     await notifications.notify(
@@ -263,7 +263,7 @@ export function createAppointmentService({ settings, scheduling, notifications, 
     const missed = await Appointment.findOneAndUpdate(
       { _id: appointment._id, status: 'booked' },
       { $set: { status: 'no_show' }, $unset: RELEASE_KEYS },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (!missed) throw new AppError('INVALID_STATE', 'The appointment is no longer booked');
     return serialize(missed, user);
