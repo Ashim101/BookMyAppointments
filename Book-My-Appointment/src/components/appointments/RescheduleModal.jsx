@@ -50,7 +50,7 @@ export default function RescheduleModal({ appointment, open, onClose, onReschedu
             Close
           </Button>
           <Button onClick={submit} disabled={!selected} loading={reschedule.loading}>
-            {selected ? `Move to ${formatDate(selected.date, { weekday: false })}, ${formatTime(selected.time)}` : 'Choose a new time'}
+            {selected ? `Move to ${formatDate(selected.date, { weekday: false, year: false })}, ${formatTime(selected.time)}` : 'Choose a new time'}
           </Button>
         </>
       }
