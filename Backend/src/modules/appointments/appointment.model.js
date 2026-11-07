@@ -43,7 +43,11 @@ const appointmentSchema = new mongoose.Schema(
     fee: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true },
     status: { type: String, enum: ['booked', 'completed', 'cancelled', 'no_show'], default: 'booked' },
-    paymentStatus: { type: String, enum: ['unpaid', 'paid', 'refund_pending', 'refunded'], default: 'unpaid' },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'paid', 'refund_pending', 'refunded'],
+      default: 'unpaid',
+    },
     payment: {
       orderId: String,
       paymentId: String,
@@ -90,8 +94,14 @@ const appointmentSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-appointmentSchema.index({ activeSlotKey: 1 }, { unique: true, partialFilterExpression: { activeSlotKey: { $type: 'string' } } });
-appointmentSchema.index({ activePatientKey: 1 }, { unique: true, partialFilterExpression: { activePatientKey: { $type: 'string' } } });
+appointmentSchema.index(
+  { activeSlotKey: 1 },
+  { unique: true, partialFilterExpression: { activeSlotKey: { $type: 'string' } } },
+);
+appointmentSchema.index(
+  { activePatientKey: 1 },
+  { unique: true, partialFilterExpression: { activePatientKey: { $type: 'string' } } },
+);
 appointmentSchema.index({ patient: 1, startsAt: -1 });
 appointmentSchema.index({ doctor: 1, startsAt: -1 });
 appointmentSchema.index({ status: 1, reminderSentAt: 1, startsAt: 1 });

@@ -58,7 +58,11 @@ describe('reminder job', () => {
   it('skips cancelled, completed, no-show and already started appointments', async () => {
     const cancelled = await book(h.day(1), '09:00');
     const keep = await book(h.day(1), '09:30');
-    await h.request.patch(`/api/appointments/${cancelled.id}/cancel`).set(h.bearer(patient.token)).send({ reason: 'x' }).expect(200);
+    await h.request
+      .patch(`/api/appointments/${cancelled.id}/cancel`)
+      .set(h.bearer(patient.token))
+      .send({ reason: 'x' })
+      .expect(200);
     const past = await Appointment.create({
       ...(await Appointment.findById(keep.id)).toObject({ depopulate: true }),
       _id: undefined,
@@ -76,8 +80,18 @@ describe('reminder job', () => {
 
   it('sends at most one reminder per appointment even when instances race', async () => {
     const appointments = [];
-    for (const [date, time] of [[h.day(0), '15:00'], [h.day(0), '15:30'], [h.day(0), '16:00'], [h.day(1), '09:00']]) appointments.push(await book(date, time));
-    const results = await Promise.all([job.runOnce(new Date(BASE_NOW)), job.runOnce(new Date(BASE_NOW)), job.runOnce(new Date(BASE_NOW))]);
+    for (const [date, time] of [
+      [h.day(0), '15:00'],
+      [h.day(0), '15:30'],
+      [h.day(0), '16:00'],
+      [h.day(1), '09:00'],
+    ])
+      appointments.push(await book(date, time));
+    const results = await Promise.all([
+      job.runOnce(new Date(BASE_NOW)),
+      job.runOnce(new Date(BASE_NOW)),
+      job.runOnce(new Date(BASE_NOW)),
+    ]);
     expect(results.reduce((a, b) => a + b, 0)).toBe(4);
     expect(await Notification.countDocuments({ type: 'appointment_reminder', userId: patient.id })).toBe(4);
     expect(h.container.mailer.outbox.filter((m) => m.subject.startsWith('Reminder'))).toHaveLength(4);
@@ -87,7 +101,11 @@ describe('reminder job', () => {
   it('sends a new reminder after the appointment is rescheduled', async () => {
     const a = await book(h.day(1), '09:00');
     expect(await job.runOnce(new Date(BASE_NOW))).toBe(1);
-    await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(h.bearer(patient.token)).send({ date: h.day(0), time: '16:00' }).expect(200);
+    await h.request
+      .patch(`/api/appointments/${a.id}/reschedule`)
+      .set(h.bearer(patient.token))
+      .send({ date: h.day(0), time: '16:00' })
+      .expect(200);
     expect((await Appointment.findById(a.id)).reminderSentAt).toBeNull();
     expect(await job.runOnce(new Date(BASE_NOW))).toBe(1);
   });
@@ -110,7 +128,11 @@ describe('reminder job', () => {
     job.start();
     job.start();
     expect(job.status().running).toBe(true);
-    await expect.poll(async () => Notification.countDocuments({ type: 'appointment_reminder', userId: patient.id }), { timeout: 5000 }).toBe(1);
+    await expect
+      .poll(async () => Notification.countDocuments({ type: 'appointment_reminder', userId: patient.id }), {
+        timeout: 5000,
+      })
+      .toBe(1);
     await job.stop();
     expect(job.status()).toMatchObject({ running: false, lastRunAt: expect.any(String) });
     const health = await h.request.get('/api/health');

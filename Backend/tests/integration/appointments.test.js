@@ -55,10 +55,27 @@ describe('appointments', () => {
         review: null,
         rescheduleCount: 0,
       });
-      expect(a.patient).toMatchObject({ id: patient.id, name: 'Pat Ient', email: patient.email, gender: 'unspecified' });
-      expect(a.doctor).toMatchObject({ id: doctor.id, name: 'Dr. Test', speciality: 'general-physician', specialityName: 'General physician' });
+      expect(a.patient).toMatchObject({
+        id: patient.id,
+        name: 'Pat Ient',
+        email: patient.email,
+        gender: 'unspecified',
+      });
+      expect(a.doctor).toMatchObject({
+        id: doctor.id,
+        name: 'Dr. Test',
+        speciality: 'general-physician',
+        specialityName: 'General physician',
+      });
       expect(a.doctor.address.city).toBe('Kathmandu');
-      expect(a.actions).toEqual({ canCancel: true, canReschedule: true, canPay: true, canReview: false, canComplete: false, canMarkNoShow: false });
+      expect(a.actions).toEqual({
+        canCancel: true,
+        canReschedule: true,
+        canPay: true,
+        canReview: false,
+        canComplete: false,
+        canMarkNoShow: false,
+      });
 
       const note = await Notification.findOne({ userId: doctor.id, role: 'doctor' });
       expect(note).toMatchObject({ type: 'appointment_booked', read: false });
@@ -97,7 +114,10 @@ describe('appointments', () => {
     });
 
     it('returns 404 for unknown or deactivated doctors', async () => {
-      const missing = await h.request.post('/api/appointments').set(as(patient)).send({ doctorId: '64b64b64b64b64b64b64b64b', date: h.day(3), time: '10:00' });
+      const missing = await h.request
+        .post('/api/appointments')
+        .set(as(patient))
+        .send({ doctorId: '64b64b64b64b64b64b64b64b', date: h.day(3), time: '10:00' });
       expect(missing.status).toBe(404);
       await h.request.patch(`/api/admin/doctors/${doctor.id}/active`).set(as(admin)).send({ active: false });
       expect((await h.book(patient, doctor.id)).status).toBe(404);
@@ -127,7 +147,11 @@ describe('appointments', () => {
       const leave = await h.book(patient, doctor.id, { date: h.day(4), time: '10:00' });
       expect(leave.body.error.code).toBe('SLOT_UNAVAILABLE');
 
-      await h.request.patch(`/api/admin/doctors/${doctor.id}/availability`).set(as(admin)).send({ available: false }).expect(200);
+      await h.request
+        .patch(`/api/admin/doctors/${doctor.id}/availability`)
+        .set(as(admin))
+        .send({ available: false })
+        .expect(200);
       const off = await h.book(patient, doctor.id);
       expect(off.status).toBe(422);
       expect(off.body.error.code).toBe('SLOT_UNAVAILABLE');
@@ -140,7 +164,11 @@ describe('appointments', () => {
       expect(taken.status).toBe(409);
       expect(taken.body.error.code).toBe('SLOT_TAKEN');
 
-      await h.request.patch(`/api/appointments/${first.id}/cancel`).set(as(patient)).send({ reason: 'Change of plans' }).expect(200);
+      await h.request
+        .patch(`/api/appointments/${first.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'Change of plans' })
+        .expect(200);
       expect((await h.book(other, doctor.id, { time: '11:00' })).status).toBe(201);
     });
 
@@ -192,42 +220,67 @@ describe('appointments', () => {
       expect(mine.body.data).toMatchObject({ page: 1, limit: 10, total: 2, totalPages: 1 });
       const docList = await h.request.get('/api/appointments').set(as(doctor));
       expect(docList.body.data.total).toBe(3);
-      const everything = await h.request.get('/api/appointments').set(as(admin)).query({ limit: 2, doctorId: doctor.id });
+      const everything = await h.request
+        .get('/api/appointments')
+        .set(as(admin))
+        .query({ limit: 2, doctorId: doctor.id });
       expect(everything.body.data).toMatchObject({ limit: 2, total: 3, totalPages: 2 });
       expect(everything.body.data.items).toHaveLength(2);
 
-      const byPatient = await h.request.get('/api/appointments').set(as(doctor)).query({ patientId: second.id });
+      const byPatient = await h.request
+        .get('/api/appointments')
+        .set(as(doctor))
+        .query({ patientId: second.id });
       expect(byPatient.body.data.total).toBe(1);
       const byDoctor = await h.request.get('/api/appointments').set(as(admin)).query({ doctorId: doctor.id });
       expect(byDoctor.body.data.total).toBe(3);
       // A patient cannot widen their view with filters.
-      const sneaky = await h.request.get('/api/appointments').set(as(patient)).query({ patientId: second.id, doctorId: doctor.id });
+      const sneaky = await h.request
+        .get('/api/appointments')
+        .set(as(patient))
+        .query({ patientId: second.id, doctorId: doctor.id });
       expect(sneaky.body.data.total).toBe(2);
     });
 
     it('filters by status and date and orders upcoming ascending, others descending', async () => {
       const late = await book({ date: h.day(5), time: '15:00' });
       const early = await book({ date: h.day(2), time: '09:00' });
-      await h.request.patch(`/api/appointments/${late.id}/cancel`).set(as(patient)).send({ reason: 'no' }).expect(200);
+      await h.request
+        .patch(`/api/appointments/${late.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'no' })
+        .expect(200);
 
       const upcoming = await h.request.get('/api/appointments').set(as(patient)).query({ scope: 'upcoming' });
       expect(upcoming.body.data.items.map((i) => i.id)).toEqual([early.id]);
       const past = await h.request.get('/api/appointments').set(as(patient)).query({ scope: 'past' });
       expect(past.body.data.items.map((i) => i.id)).toEqual([late.id]);
 
-      const cancelled = await h.request.get('/api/appointments').set(as(patient)).query({ status: 'cancelled' });
+      const cancelled = await h.request
+        .get('/api/appointments')
+        .set(as(patient))
+        .query({ status: 'cancelled' });
       expect(cancelled.body.data.items.map((i) => i.id)).toEqual([late.id]);
-      const range = await h.request.get('/api/appointments').set(as(patient)).query({ from: h.day(4), to: h.day(6) });
+      const range = await h.request
+        .get('/api/appointments')
+        .set(as(patient))
+        .query({ from: h.day(4), to: h.day(6) });
       expect(range.body.data.items.map((i) => i.id)).toEqual([late.id]);
 
       const all = await h.request.get('/api/appointments').set(as(patient));
       expect(all.body.data.items.map((i) => i.id)).toEqual([late.id, early.id]);
-      const asc = await h.request.get('/api/appointments').set(as(patient)).query({ scope: 'upcoming', status: 'cancelled' });
+      const asc = await h.request
+        .get('/api/appointments')
+        .set(as(patient))
+        .query({ scope: 'upcoming', status: 'cancelled' });
       expect(asc.body.data.total).toBe(1);
     });
 
     it('rejects invalid filters', async () => {
-      const res = await h.request.get('/api/appointments').set(as(patient)).query({ status: 'nope', limit: 500 });
+      const res = await h.request
+        .get('/api/appointments')
+        .set(as(patient))
+        .query({ status: 'nope', limit: 500 });
       expect(res.status).toBe(400);
       expect(res.body.error.details.map((d) => d.path).sort()).toEqual(['limit', 'status']);
     });
@@ -236,9 +289,15 @@ describe('appointments', () => {
   describe('cancellation', () => {
     it('lets a patient cancel before the cutoff and records who and why', async () => {
       const a = await book();
-      const res = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'Feeling better' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'Feeling better' });
       expect(res.status).toBe(200);
-      expect(res.body.data).toMatchObject({ status: 'cancelled', cancellation: { by: 'patient', reason: 'Feeling better' } });
+      expect(res.body.data).toMatchObject({
+        status: 'cancelled',
+        cancellation: { by: 'patient', reason: 'Feeling better' },
+      });
       expect(res.body.data.actions.canCancel).toBe(false);
       const stored = await Appointment.findById(a.id).lean();
       expect(stored.activeSlotKey).toBeUndefined();
@@ -251,22 +310,39 @@ describe('appointments', () => {
       const a = await book();
       const start = Date.parse(a.startsAt);
       h.clock.set(start - 2 * HOUR + 1);
-      const late = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'late' });
+      const late = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'late' });
       expect(late.status).toBe(422);
       expect(late.body.error.code).toBe('CANCELLATION_WINDOW_PASSED');
 
       h.clock.set(start - 2 * HOUR);
-      const ok = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'just in time' });
+      const ok = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'just in time' });
       expect(ok.status).toBe(200);
     });
 
     it('honours a cutoff changed in the admin settings', async () => {
       const a = await book();
-      await h.request.put('/api/admin/settings').set(as(admin)).send({ cancellationCutoffHours: 24 }).expect(200);
+      await h.request
+        .put('/api/admin/settings')
+        .set(as(admin))
+        .send({ cancellationCutoffHours: 24 })
+        .expect(200);
       h.clock.set(Date.parse(a.startsAt) - 5 * HOUR);
-      const res = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'x' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'x' });
       expect(res.body.error.code).toBe('CANCELLATION_WINDOW_PASSED');
-      await h.request.put('/api/admin/settings').set(as(admin)).send({ cancellationCutoffHours: 2 }).expect(200);
+      await h.request
+        .put('/api/admin/settings')
+        .set(as(admin))
+        .send({ cancellationCutoffHours: 2 })
+        .expect(200);
     });
 
     it('does not let other patients or other doctors touch the appointment', async () => {
@@ -274,7 +350,10 @@ describe('appointments', () => {
       const stranger = await h.patientSession();
       const otherDoctor = await h.doctorSession();
       for (const who of [stranger, otherDoctor]) {
-        const res = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(who)).send({ reason: 'hijack' });
+        const res = await h.request
+          .patch(`/api/appointments/${a.id}/cancel`)
+          .set(as(who))
+          .send({ reason: 'hijack' });
         expect(res.status).toBe(404);
       }
       expect((await Appointment.findById(a.id)).status).toBe('booked');
@@ -282,18 +361,27 @@ describe('appointments', () => {
 
     it('lets the doctor cancel their own appointment until it starts, and logs it', async () => {
       const a = await book();
-      const res = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(doctor)).send({ reason: 'Emergency' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(doctor))
+        .send({ reason: 'Emergency' });
       expect(res.status).toBe(200);
       expect(res.body.data.cancellation).toMatchObject({ by: 'doctor', reason: 'Emergency' });
       expect(await Notification.findOne({ userId: patient.id, type: 'appointment_cancelled' })).toBeTruthy();
       const log = await AuditLog.findOne({ action: 'appointment.cancel' });
-      expect(log).toMatchObject({ actor: { role: 'doctor', id: doctor.id }, target: { type: 'appointment', id: a.id } });
+      expect(log).toMatchObject({
+        actor: { role: 'doctor', id: doctor.id },
+        target: { type: 'appointment', id: a.id },
+      });
     });
 
     it('rejects a doctor cancelling after the start', async () => {
       const a = await book();
       h.clock.set(Date.parse(a.startsAt) + MINUTE);
-      const res = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(doctor)).send({ reason: 'late' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(doctor))
+        .send({ reason: 'late' });
       expect(res.status).toBe(422);
       expect(res.body.error.code).toBe('INVALID_STATE');
     });
@@ -301,29 +389,52 @@ describe('appointments', () => {
     it('lets an admin cancel anything booked, notifies both parties and audits it', async () => {
       const a = await book();
       h.clock.set(Date.parse(a.startsAt) - 10 * MINUTE);
-      const res = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(admin)).send({ reason: 'Clinic closed' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(admin))
+        .send({ reason: 'Clinic closed' });
       expect(res.status).toBe(200);
       expect(res.body.data.cancellation.by).toBe('admin');
-      expect(await Notification.countDocuments({ type: 'appointment_cancelled', link: `/appointments/${a.id}` })).toBe(2);
+      expect(
+        await Notification.countDocuments({ type: 'appointment_cancelled', link: `/appointments/${a.id}` }),
+      ).toBe(2);
       expect(await AuditLog.findOne({ action: 'appointment.cancel', 'actor.role': 'admin' })).toBeTruthy();
     });
 
     it('rejects cancelling terminal appointments with INVALID_STATE', async () => {
       const a = await book();
-      await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'one' }).expect(200);
-      const again = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'two' });
+      await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'one' })
+        .expect(200);
+      const again = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'two' });
       expect(again.status).toBe(422);
       expect(again.body.error.code).toBe('INVALID_STATE');
-      expect((await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(admin)).send({ reason: 'three' })).body.error.code).toBe('INVALID_STATE');
+      expect(
+        (await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(admin)).send({ reason: 'three' }))
+          .body.error.code,
+      ).toBe('INVALID_STATE');
     });
   });
 
   describe('rescheduling', () => {
     it('moves the appointment, frees the old slot and notifies the doctor', async () => {
       const a = await book({ time: '10:00' });
-      const res = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(4), time: '11:30' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(4), time: '11:30' });
       expect(res.status).toBe(200);
-      expect(res.body.data).toMatchObject({ date: h.day(4), time: '11:30', rescheduleCount: 1, status: 'booked' });
+      expect(res.body.data).toMatchObject({
+        date: h.day(4),
+        time: '11:30',
+        rescheduleCount: 1,
+        status: 'booked',
+      });
       expect(res.body.data.startsAt).toBe('2026-03-06T05:45:00.000Z');
       expect(await Notification.findOne({ userId: doctor.id, type: 'appointment_rescheduled' })).toBeTruthy();
 
@@ -334,9 +445,16 @@ describe('appointments', () => {
     it('allows two reschedules and rejects the third', async () => {
       const a = await book();
       for (const time of ['10:30', '11:00']) {
-        await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(3), time }).expect(200);
+        await h.request
+          .patch(`/api/appointments/${a.id}/reschedule`)
+          .set(as(patient))
+          .send({ date: h.day(3), time })
+          .expect(200);
       }
-      const third = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(3), time: '14:00' });
+      const third = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(3), time: '14:00' });
       expect(third.status).toBe(422);
       expect(third.body.error.code).toBe('INVALID_STATE');
       const view = await h.request.get(`/api/appointments/${a.id}`).set(as(patient));
@@ -347,12 +465,21 @@ describe('appointments', () => {
       const other = await h.patientSession();
       await book({ time: '15:00' }, other);
       const a = await book({ time: '10:00' });
-      const taken = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(3), time: '15:00' });
+      const taken = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(3), time: '15:00' });
       expect(taken.status).toBe(409);
       expect(taken.body.error.code).toBe('SLOT_TAKEN');
-      const invalid = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(3), time: '12:30' });
+      const invalid = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(3), time: '12:30' });
       expect(invalid.body.error.code).toBe('SLOT_UNAVAILABLE');
-      const same = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(3), time: '10:00' });
+      const same = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(3), time: '10:00' });
       expect(same.body.error.code).toBe('SLOT_UNAVAILABLE');
       expect((await Appointment.findById(a.id)).rescheduleCount).toBe(0);
     });
@@ -360,17 +487,41 @@ describe('appointments', () => {
     it('applies the cutoff, role and ownership rules', async () => {
       const a = await book();
       const stranger = await h.patientSession();
-      expect((await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(stranger)).send({ date: h.day(4), time: '10:00' })).status).toBe(404);
-      expect((await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(doctor)).send({ date: h.day(4), time: '10:00' })).status).toBe(403);
+      expect(
+        (
+          await h.request
+            .patch(`/api/appointments/${a.id}/reschedule`)
+            .set(as(stranger))
+            .send({ date: h.day(4), time: '10:00' })
+        ).status,
+      ).toBe(404);
+      expect(
+        (
+          await h.request
+            .patch(`/api/appointments/${a.id}/reschedule`)
+            .set(as(doctor))
+            .send({ date: h.day(4), time: '10:00' })
+        ).status,
+      ).toBe(403);
       h.clock.set(Date.parse(a.startsAt) - HOUR);
-      const late = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(4), time: '10:00' });
+      const late = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(4), time: '10:00' });
       expect(late.body.error.code).toBe('CANCELLATION_WINDOW_PASSED');
     });
 
     it('cannot reschedule a cancelled appointment', async () => {
       const a = await book();
-      await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(patient)).send({ reason: 'x' }).expect(200);
-      const res = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(4), time: '10:00' });
+      await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(patient))
+        .send({ reason: 'x' })
+        .expect(200);
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(4), time: '10:00' });
       expect(res.body.error.code).toBe('INVALID_STATE');
     });
 
@@ -378,7 +529,10 @@ describe('appointments', () => {
       const second = await h.doctorSession();
       const a = await book({ time: '10:00' });
       await book({ time: '11:00' }, patient, second);
-      const res = await h.request.patch(`/api/appointments/${a.id}/reschedule`).set(as(patient)).send({ date: h.day(3), time: '11:00' });
+      const res = await h.request
+        .patch(`/api/appointments/${a.id}/reschedule`)
+        .set(as(patient))
+        .send({ date: h.day(3), time: '11:00' });
       expect(res.status).toBe(409);
       expect(res.body.error.code).toBe('CONFLICT');
       expect((await Appointment.findById(a.id)).time).toBe('10:00');
@@ -386,12 +540,24 @@ describe('appointments', () => {
   });
 
   describe('completion and no-show', () => {
-    const prescription = [{ medicine: 'Paracetamol', dosage: '500mg', frequency: 'twice daily', durationDays: 5, instructions: 'After food' }];
+    const prescription = [
+      {
+        medicine: 'Paracetamol',
+        dosage: '500mg',
+        frequency: 'twice daily',
+        durationDays: 5,
+        instructions: 'After food',
+      },
+    ];
 
     it('completes from 15 minutes before the start with notes and a prescription', async () => {
       const a = await book();
       const start = Date.parse(a.startsAt);
-      const complete = (who = doctor) => h.request.patch(`/api/appointments/${a.id}/complete`).set(as(who)).send({ notes: 'All good', prescription });
+      const complete = (who = doctor) =>
+        h.request
+          .patch(`/api/appointments/${a.id}/complete`)
+          .set(as(who))
+          .send({ notes: 'All good', prescription });
 
       h.clock.set(start - 16 * MINUTE);
       const early = await complete();
@@ -402,13 +568,20 @@ describe('appointments', () => {
       const res = await complete();
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe('completed');
-      expect(res.body.data.consultation).toMatchObject({ notes: 'All good', prescription, completedAt: new Date(start - 15 * MINUTE).toISOString() });
+      expect(res.body.data.consultation).toMatchObject({
+        notes: 'All good',
+        prescription,
+        completedAt: new Date(start - 15 * MINUTE).toISOString(),
+      });
       expect(await Notification.findOne({ userId: patient.id, type: 'prescription_ready' })).toBeTruthy();
       expect(await AuditLog.findOne({ action: 'appointment.complete', 'actor.id': doctor.id })).toBeTruthy();
 
       const again = await complete();
       expect(again.body.error.code).toBe('INVALID_STATE');
-      const cancel = await h.request.patch(`/api/appointments/${a.id}/cancel`).set(as(admin)).send({ reason: 'x' });
+      const cancel = await h.request
+        .patch(`/api/appointments/${a.id}/cancel`)
+        .set(as(admin))
+        .send({ reason: 'x' });
       expect(cancel.body.error.code).toBe('INVALID_STATE');
       const slot = await h.request.get(`/api/doctors/${doctor.id}/slots`).query({ from: a.date, days: 1 });
       expect(slot.body.data.days[0].slots.find((s) => s.time === a.time).available).toBe(false);
@@ -418,7 +591,11 @@ describe('appointments', () => {
       const a = await book();
       h.clock.set(Date.parse(a.startsAt));
       const otherDoctor = await h.doctorSession();
-      const send = (who) => h.request.patch(`/api/appointments/${a.id}/complete`).set(as(who)).send({ notes: 'x', prescription: [] });
+      const send = (who) =>
+        h.request
+          .patch(`/api/appointments/${a.id}/complete`)
+          .set(as(who))
+          .send({ notes: 'x', prescription: [] });
       expect((await send(patient)).status).toBe(403);
       expect((await send(admin)).status).toBe(403);
       const hijack = await send(otherDoctor);
@@ -459,10 +636,24 @@ describe('appointments', () => {
     it('reflects the state in the per requester actions flags', async () => {
       const a = await book();
       const start = Date.parse(a.startsAt);
-      const flags = async (who) => (await h.request.get(`/api/appointments/${a.id}`).set(as(who))).body.data.actions;
+      const flags = async (who) =>
+        (await h.request.get(`/api/appointments/${a.id}`).set(as(who))).body.data.actions;
 
-      expect(await flags(doctor)).toMatchObject({ canCancel: true, canComplete: false, canMarkNoShow: false, canReschedule: false, canPay: false });
-      expect(await flags(admin)).toEqual({ canCancel: true, canReschedule: false, canPay: false, canReview: false, canComplete: false, canMarkNoShow: false });
+      expect(await flags(doctor)).toMatchObject({
+        canCancel: true,
+        canComplete: false,
+        canMarkNoShow: false,
+        canReschedule: false,
+        canPay: false,
+      });
+      expect(await flags(admin)).toEqual({
+        canCancel: true,
+        canReschedule: false,
+        canPay: false,
+        canReview: false,
+        canComplete: false,
+        canMarkNoShow: false,
+      });
       h.clock.set(start - 10 * MINUTE);
       expect(await flags(doctor)).toMatchObject({ canComplete: true, canMarkNoShow: false });
       expect(await flags(patient)).toMatchObject({ canCancel: false, canReschedule: false, canPay: true });

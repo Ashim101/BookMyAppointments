@@ -12,7 +12,9 @@ export function createSchedulingService({ settings, clock }) {
     const to = addDays(from, days - 1);
     const [config, leaves, booked] = await Promise.all([
       settings.get(),
-      Leave.find({ doctor: doctor._id, date: { $gte: from, $lte: to } }).select('date').lean(),
+      Leave.find({ doctor: doctor._id, date: { $gte: from, $lte: to } })
+        .select('date')
+        .lean(),
       Appointment.find({ doctor: doctor._id, date: { $gte: from, $lte: to }, status: { $in: HOLDS_SLOT } })
         .select('date time')
         .lean(),
@@ -54,7 +56,8 @@ export function createSchedulingService({ settings, clock }) {
     const { bookedByDate, ...ctx } = await context(doctor, date, 1);
     const slot = findOfferedSlot({ ...ctx, date, time });
     if (!slot) return null;
-    if (bookedByDate.get(date)?.has(time)) throw new AppError('SLOT_TAKEN', 'That slot has just been taken. Please choose another.');
+    if (bookedByDate.get(date)?.has(time))
+      throw new AppError('SLOT_TAKEN', 'That slot has just been taken. Please choose another.');
     return { startsAt: new Date(slot.startsAt), endsAt: new Date(slot.endsAt), timezone: ctx.timezone };
   }
 

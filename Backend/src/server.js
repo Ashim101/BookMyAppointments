@@ -24,7 +24,9 @@ async function main() {
 
   const app = createApp({ config, logger });
   const { reminderJob } = app.locals.container;
-  const server = app.listen(config.port, () => logger.info({ port: config.port, env: config.env }, 'server listening'));
+  const server = app.listen(config.port, () =>
+    logger.info({ port: config.port, env: config.env }, 'server listening'),
+  );
   if (config.reminders.enabled) reminderJob.start();
 
   let shuttingDown = false;

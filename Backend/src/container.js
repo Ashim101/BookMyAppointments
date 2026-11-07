@@ -31,7 +31,8 @@ export function createContainer({ config, logger, overrides = {} }) {
   const mailer = overrides.mailer ?? createMailer({ config, logger });
   const provider = overrides.payments ?? createPaymentProvider({ config });
   const storage = overrides.storage ?? createStorage({ config, logger });
-  const googleVerifier = 'googleVerifier' in overrides ? overrides.googleVerifier : createGoogleVerifier({ config });
+  const googleVerifier =
+    'googleVerifier' in overrides ? overrides.googleVerifier : createGoogleVerifier({ config });
 
   const settings = createSettingsService({ config, clock });
   const audit = createAuditService({ logger });
@@ -40,11 +41,29 @@ export function createContainer({ config, logger, overrides = {} }) {
   const tokens = createTokenService({ config, clock });
   const otp = createOtpService({ config, clock, mailer });
   const loginGuard = createLoginGuard({ config, clock });
-  const auth = createAuthService({ config, clock, tokens, otp, principals, loginGuard, mailer, googleVerifier, logger });
+  const auth = createAuthService({
+    config,
+    clock,
+    tokens,
+    otp,
+    principals,
+    loginGuard,
+    mailer,
+    googleVerifier,
+    logger,
+  });
 
   const scheduling = createSchedulingService({ settings, clock });
   const refunds = createRefundService({ provider, clock, logger });
-  const appointments = createAppointmentService({ settings, scheduling, notifications, refunds, mailer, clock, logger });
+  const appointments = createAppointmentService({
+    settings,
+    scheduling,
+    notifications,
+    refunds,
+    mailer,
+    clock,
+    logger,
+  });
   const patients = createPatientService({ storage, tokens });
   const doctors = createDoctorService({ config, clock, settings, scheduling, storage, tokens });
   const doctorSelf = createDoctorSelfService({ settings, clock, doctors, appointments });
@@ -52,7 +71,14 @@ export function createContainer({ config, logger, overrides = {} }) {
   const reviews = createReviewService({ appointments });
   const payments = createPaymentService({ provider, appointments, notifications, refunds, clock });
   const analytics = createAnalyticsService({ settings, clock });
-  const reminderJob = createReminderJob({ config, clock, mailer, notifications, logger, sweeps: [refunds.retryPending] });
+  const reminderJob = createReminderJob({
+    config,
+    clock,
+    mailer,
+    notifications,
+    logger,
+    sweeps: [refunds.retryPending],
+  });
 
   return {
     config,

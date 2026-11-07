@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-const email = z.email().max(254).transform((value) => value.trim().toLowerCase());
+const email = z
+  .email()
+  .max(254)
+  .transform((value) => value.trim().toLowerCase());
 
 export const password = z
   .string()

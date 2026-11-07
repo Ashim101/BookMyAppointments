@@ -21,13 +21,22 @@ describe('concurrency guarantees', () => {
     for (const loser of responses.filter((r) => r.status === 409)) {
       expect(loser.body.error.code).toBe('SLOT_TAKEN');
     }
-    expect(await Appointment.countDocuments({ doctor: doctor.id, date: h.day(3), time: '10:00', status: 'booked' })).toBe(1);
+    expect(
+      await Appointment.countDocuments({
+        doctor: doctor.id,
+        date: h.day(3),
+        time: '10:00',
+        status: 'booked',
+      }),
+    ).toBe(1);
   });
 
   it('lets only one of several identical requests from the same patient succeed', async () => {
     const doctor = await h.doctor();
     const patient = await h.patientSession();
-    const responses = await Promise.all(Array.from({ length: 6 }, () => h.book(patient, doctor.id, { time: '11:00' })));
+    const responses = await Promise.all(
+      Array.from({ length: 6 }, () => h.book(patient, doctor.id, { time: '11:00' })),
+    );
     expect(responses.filter((r) => r.status === 201)).toHaveLength(1);
     expect(responses.filter((r) => r.status === 409)).toHaveLength(5);
     expect(await Appointment.countDocuments({ patient: patient.id })).toBe(1);
@@ -61,7 +70,9 @@ describe('concurrency guarantees', () => {
   it('reschedules atomically: concurrent moves into one slot produce one winner', async () => {
     const doctor = await h.doctor();
     const patients = await Promise.all(Array.from({ length: 4 }, () => h.patientSession()));
-    const booked = await Promise.all(patients.map((p, i) => h.book(p, doctor.id, { time: ['09:00', '09:30', '10:00', '10:30'][i] })));
+    const booked = await Promise.all(
+      patients.map((p, i) => h.book(p, doctor.id, { time: ['09:00', '09:30', '10:00', '10:30'][i] })),
+    );
     const responses = await Promise.all(
       patients.map((p, i) =>
         h.request
@@ -87,12 +98,19 @@ describe('concurrency guarantees', () => {
     const [owner, rival] = await Promise.all([h.patientSession(), h.patientSession()]);
     const booked = (await h.book(owner, doctor.id, { time: '16:00' })).body.data;
     const [cancel, rebook] = await Promise.all([
-      h.request.patch(`/api/appointments/${booked.id}/cancel`).set(h.bearer(owner.token)).send({ reason: 'swap' }),
+      h.request
+        .patch(`/api/appointments/${booked.id}/cancel`)
+        .set(h.bearer(owner.token))
+        .send({ reason: 'swap' }),
       h.book(rival, doctor.id, { time: '16:00' }),
     ]);
     expect(cancel.status).toBe(200);
     expect([201, 409]).toContain(rebook.status);
-    const active = await Appointment.countDocuments({ doctor: doctor.id, time: '16:00', status: { $in: ['booked', 'completed'] } });
+    const active = await Appointment.countDocuments({
+      doctor: doctor.id,
+      time: '16:00',
+      status: { $in: ['booked', 'completed'] },
+    });
     expect(active).toBe(rebook.status === 201 ? 1 : 0);
   });
 });

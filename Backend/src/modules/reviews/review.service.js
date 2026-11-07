@@ -20,7 +20,9 @@ export function createReviewService({ appointments }) {
       { $match: { doctor: doctorId } },
       { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
     ]);
-    const rating = stats ? { average: Math.round(stats.average * 100) / 100, count: stats.count } : { average: 0, count: 0 };
+    const rating = stats
+      ? { average: Math.round(stats.average * 100) / 100, count: stats.count }
+      : { average: 0, count: 0 };
     await Doctor.updateOne({ _id: doctorId }, { $set: { rating } });
   }
 
@@ -40,7 +42,8 @@ export function createReviewService({ appointments }) {
         comment,
       });
     } catch (err) {
-      if (err.code === 11000) throw new AppError('ALREADY_REVIEWED', 'This appointment has already been reviewed');
+      if (err.code === 11000)
+        throw new AppError('ALREADY_REVIEWED', 'This appointment has already been reviewed');
       throw err;
     }
     const reviewed = await Appointment.findByIdAndUpdate(

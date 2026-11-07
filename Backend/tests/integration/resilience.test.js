@@ -17,11 +17,13 @@ describe('login lockout', () => {
   afterAll(() => h.stop());
   beforeEach(() => h.clock.set(BASE_NOW));
 
-  const login = (email, password, role = 'patient') => h.request.post('/api/auth/login').send({ email, password, role });
+  const login = (email, password, role = 'patient') =>
+    h.request.post('/api/auth/login').send({ email, password, role });
 
   it('locks an account after repeated failures, even for the right password, then releases it', async () => {
     const patient = await h.patientSession('lock@example.com');
-    for (let i = 0; i < 3; i += 1) expect((await login(patient.email, 'Wrong-pass1')).body.error.code).toBe('INVALID_CREDENTIALS');
+    for (let i = 0; i < 3; i += 1)
+      expect((await login(patient.email, 'Wrong-pass1')).body.error.code).toBe('INVALID_CREDENTIALS');
 
     const locked = await login(patient.email, PASSWORD);
     expect(locked.status).toBe(429);
@@ -148,8 +150,15 @@ describe('refund retries', () => {
       },
     };
     h = await startHarness({
-      env: { PAYMENTS_MODE: 'razorpay', RAZORPAY_KEY_ID: 'rzp_test', RAZORPAY_KEY_SECRET: keySecret, RAZORPAY_WEBHOOK_SECRET: 'wh' },
-      overrides: { payments: createRazorpayProvider({ keyId: 'rzp_test', keySecret, webhookSecret: 'wh', client }) },
+      env: {
+        PAYMENTS_MODE: 'razorpay',
+        RAZORPAY_KEY_ID: 'rzp_test',
+        RAZORPAY_KEY_SECRET: keySecret,
+        RAZORPAY_WEBHOOK_SECRET: 'wh',
+      },
+      overrides: {
+        payments: createRazorpayProvider({ keyId: 'rzp_test', keySecret, webhookSecret: 'wh', client }),
+      },
     });
   });
   afterAll(() => h.stop());
@@ -160,10 +169,22 @@ describe('refund retries', () => {
     const doctor = await h.doctorSession();
     const patient = await h.patientSession();
     const booked = (await h.book(patient, doctor.id)).body.data;
-    const order = (await h.request.post('/api/payments/order').set(h.bearer(patient.token)).send({ appointmentId: booked.id })).body.data;
+    const order = (
+      await h.request
+        .post('/api/payments/order')
+        .set(h.bearer(patient.token))
+        .send({ appointmentId: booked.id })
+    ).body.data;
     const signature = createHmac('sha256', keySecret).update(`${order.orderId}|pay_retry`).digest('hex');
-    await h.request.post('/api/payments/verify').set(h.bearer(patient.token)).send({ appointmentId: booked.id, orderId: order.orderId, paymentId: 'pay_retry', signature }).expect(200);
-    const cancel = await h.request.patch(`/api/appointments/${booked.id}/cancel`).set(h.bearer(patient.token)).send({ reason: 'x' });
+    await h.request
+      .post('/api/payments/verify')
+      .set(h.bearer(patient.token))
+      .send({ appointmentId: booked.id, orderId: order.orderId, paymentId: 'pay_retry', signature })
+      .expect(200);
+    const cancel = await h.request
+      .patch(`/api/appointments/${booked.id}/cancel`)
+      .set(h.bearer(patient.token))
+      .send({ reason: 'x' });
     expect(cancel.body.data.paymentStatus).toBe('refund_pending');
 
     failing = false;
@@ -180,7 +201,10 @@ describe('refund retries', () => {
 
 describe('side effects of booking and replaced images', () => {
   let h;
-  const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32)]);
+  const PNG = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(32),
+  ]);
   beforeAll(async () => {
     h = await startHarness();
   });
@@ -191,16 +215,30 @@ describe('side effects of booking and replaced images', () => {
     const doctor = await h.doctorSession();
     const patient = await h.patientSession();
     const booked = (await h.book(patient, doctor.id)).body.data;
-    const confirmation = h.container.mailer.outbox.findLast((m) => m.subject.startsWith('Appointment confirmed'));
+    const confirmation = h.container.mailer.outbox.findLast((m) =>
+      m.subject.startsWith('Appointment confirmed'),
+    );
     expect(confirmation).toMatchObject({ to: patient.email });
     expect(confirmation.text).toContain(booked.date);
 
-    await h.request.patch(`/api/appointments/${booked.id}/cancel`).set(h.bearer(patient.token)).send({ reason: 'mine' }).expect(200);
-    expect(h.container.mailer.outbox.filter((m) => m.subject.startsWith('Appointment cancelled'))).toHaveLength(0);
+    await h.request
+      .patch(`/api/appointments/${booked.id}/cancel`)
+      .set(h.bearer(patient.token))
+      .send({ reason: 'mine' })
+      .expect(200);
+    expect(
+      h.container.mailer.outbox.filter((m) => m.subject.startsWith('Appointment cancelled')),
+    ).toHaveLength(0);
 
     const again = (await h.book(patient, doctor.id, { time: '11:00' })).body.data;
-    await h.request.patch(`/api/appointments/${again.id}/cancel`).set(h.bearer(doctor.token)).send({ reason: 'Emergency surgery' }).expect(200);
-    const cancellation = h.container.mailer.outbox.findLast((m) => m.subject.startsWith('Appointment cancelled'));
+    await h.request
+      .patch(`/api/appointments/${again.id}/cancel`)
+      .set(h.bearer(doctor.token))
+      .send({ reason: 'Emergency surgery' })
+      .expect(200);
+    const cancellation = h.container.mailer.outbox.findLast((m) =>
+      m.subject.startsWith('Appointment cancelled'),
+    );
     expect(cancellation.to).toBe(patient.email);
     expect(cancellation.text).toContain('Emergency surgery');
   });
@@ -220,7 +258,10 @@ describe('side effects of booking and replaced images', () => {
   it('deletes the previous image file when a profile picture is replaced', async () => {
     const patient = await h.patientSession();
     const upload = () =>
-      h.request.patch('/api/patient/profile').set(h.bearer(patient.token)).attach('image', PNG, { filename: 'a.png', contentType: 'image/png' });
+      h.request
+        .patch('/api/patient/profile')
+        .set(h.bearer(patient.token))
+        .attach('image', PNG, { filename: 'a.png', contentType: 'image/png' });
     const first = (await upload()).body.data.image;
     const file = (url) => path.join(h.container.storage.uploadDir, path.basename(url));
     expect(existsSync(file(first))).toBe(true);

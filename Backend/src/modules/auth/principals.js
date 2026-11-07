@@ -11,7 +11,8 @@ export const toAuthUser = (principal) => ({
   image: principal.image ?? null,
 });
 
-const blocked = () => new AppError('ACCOUNT_BLOCKED', 'This account has been disabled. Please contact support.');
+const blocked = () =>
+  new AppError('ACCOUNT_BLOCKED', 'This account has been disabled. Please contact support.');
 
 /** Resolves the account behind a token and rejects blocked or deactivated accounts. */
 export function createPrincipals({ config }) {
@@ -25,7 +26,13 @@ export function createPrincipals({ config }) {
       const patient = await Patient.findById(id).select('name email image blocked').lean();
       if (!patient) return null;
       if (patient.blocked) throw blocked();
-      return { id: String(patient._id), role, name: patient.name, email: patient.email, image: patient.image };
+      return {
+        id: String(patient._id),
+        role,
+        name: patient.name,
+        email: patient.email,
+        image: patient.image,
+      };
     }
     if (role === 'doctor') {
       const doctor = await Doctor.findById(id).select('name email image active').lean();

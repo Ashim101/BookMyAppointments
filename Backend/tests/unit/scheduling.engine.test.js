@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { findOfferedSlot, generateAvailability, generateDaySlots } from '../../src/modules/scheduling/engine.js';
+import {
+  findOfferedSlot,
+  generateAvailability,
+  generateDaySlots,
+} from '../../src/modules/scheduling/engine.js';
 
 const KTM = 'Asia/Kathmandu';
 const NY = 'America/New_York';
 
 const weekdaySchedule = {
   slotMinutes: 30,
-  weekly: [1, 2, 3, 4, 5].map((day) => ({ day, start: '10:00', end: '13:00', breaks: [{ start: '11:00', end: '11:30' }] })),
+  weekly: [1, 2, 3, 4, 5].map((day) => ({
+    day,
+    start: '10:00',
+    end: '13:00',
+    breaks: [{ start: '11:00', end: '11:30' }],
+  })),
 };
 
 // 2026-01-12 is a Monday; 03:00 UTC is 08:45 in Kathmandu.
@@ -24,7 +33,14 @@ describe('generateDaySlots', () => {
 
   it('returns nothing on days without hours and on leave days', () => {
     expect(generateDaySlots({ ...base, schedule: weekdaySchedule, date: '2026-01-17' })).toEqual([]);
-    expect(generateDaySlots({ ...base, schedule: weekdaySchedule, date: '2026-01-13', leaveDates: new Set(['2026-01-13']) })).toEqual([]);
+    expect(
+      generateDaySlots({
+        ...base,
+        schedule: weekdaySchedule,
+        date: '2026-01-13',
+        leaveDates: new Set(['2026-01-13']),
+      }),
+    ).toEqual([]);
   });
 
   it('only keeps slots that fit entirely inside working hours', () => {
@@ -42,18 +58,40 @@ describe('generateDaySlots', () => {
       bookedTimes: new Set(['12:00']),
     });
     const availability = Object.fromEntries(slots.map((slot) => [slot.time, slot.available]));
-    expect(availability).toEqual({ '10:00': false, '10:30': false, '11:30': true, '12:00': false, '12:30': true });
+    expect(availability).toEqual({
+      '10:00': false,
+      '10:30': false,
+      '11:30': true,
+      '12:00': false,
+      '12:30': true,
+    });
   });
 
   it('allows a slot exactly 30 minutes away', () => {
     const now = Date.UTC(2026, 0, 12, 4, 15) - 30 * 60_000; // 09:30 local
-    const slot = findOfferedSlot({ ...base, now, schedule: weekdaySchedule, date: '2026-01-12', time: '10:00' });
+    const slot = findOfferedSlot({
+      ...base,
+      now,
+      schedule: weekdaySchedule,
+      date: '2026-01-12',
+      time: '10:00',
+    });
     expect(slot).not.toBeNull();
   });
 
   it('respects the booking window', () => {
-    const inside = generateDaySlots({ ...base, windowDays: 7, schedule: weekdaySchedule, date: '2026-01-19' });
-    const outside = generateDaySlots({ ...base, windowDays: 7, schedule: weekdaySchedule, date: '2026-01-20' });
+    const inside = generateDaySlots({
+      ...base,
+      windowDays: 7,
+      schedule: weekdaySchedule,
+      date: '2026-01-19',
+    });
+    const outside = generateDaySlots({
+      ...base,
+      windowDays: 7,
+      schedule: weekdaySchedule,
+      date: '2026-01-20',
+    });
     expect(inside.every((slot) => slot.available)).toBe(true);
     expect(outside.length).toBeGreaterThan(0);
     expect(outside.every((slot) => !slot.available)).toBe(true);

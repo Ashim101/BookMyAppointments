@@ -32,7 +32,9 @@ export function toAppointmentDto(a, actions) {
     currency: a.currency,
     status: a.status,
     paymentStatus: a.paymentStatus,
-    cancellation: a.cancellation ? { by: a.cancellation.by, reason: a.cancellation.reason, at: iso(a.cancellation.at) } : null,
+    cancellation: a.cancellation
+      ? { by: a.cancellation.by, reason: a.cancellation.reason, at: iso(a.cancellation.at) }
+      : null,
     consultation: a.consultation
       ? {
           notes: a.consultation.notes,
@@ -46,7 +48,9 @@ export function toAppointmentDto(a, actions) {
           completedAt: iso(a.consultation.completedAt),
         }
       : null,
-    review: a.review ? { rating: a.review.rating, comment: a.review.comment, createdAt: iso(a.review.createdAt) } : null,
+    review: a.review
+      ? { rating: a.review.rating, comment: a.review.comment, createdAt: iso(a.review.createdAt) }
+      : null,
     rescheduleCount: a.rescheduleCount,
     createdAt: iso(a.createdAt),
     actions,

@@ -67,13 +67,22 @@ describe('reviews', () => {
     const stranger = await h.patientSession();
     expect((await review(stranger, id, { rating: 5, comment: 'x' })).status).toBe(404);
     expect((await review(doctor, id, { rating: 5, comment: 'x' })).status).toBe(403);
-    expect((await h.request.post(`/api/appointments/${id}/review`).send({ rating: 5, comment: '' })).status).toBe(401);
+    expect(
+      (await h.request.post(`/api/appointments/${id}/review`).send({ rating: 5, comment: '' })).status,
+    ).toBe(401);
     expect(await Review.countDocuments({ appointment: id })).toBe(0);
   });
 
   it('validates rating and comment', async () => {
     const id = await h.completed(patient, doctor);
-    for (const body of [{ rating: 0, comment: '' }, { rating: 6, comment: '' }, { rating: 3.5, comment: '' }, { rating: '5', comment: '' }, { rating: 5, comment: 'x'.repeat(1001) }, {}]) {
+    for (const body of [
+      { rating: 0, comment: '' },
+      { rating: 6, comment: '' },
+      { rating: 3.5, comment: '' },
+      { rating: '5', comment: '' },
+      { rating: 5, comment: 'x'.repeat(1001) },
+      {},
+    ]) {
       const res = await review(patient, id, body);
       expect(res.status, JSON.stringify(body).slice(0, 60)).toBe(400);
     }
@@ -82,7 +91,9 @@ describe('reviews', () => {
 
   it('allows only one winner when the same review is posted concurrently', async () => {
     const id = await h.completed(patient, doctor);
-    const results = await Promise.all(Array.from({ length: 4 }, () => review(patient, id, { rating: 4, comment: 'twice' })));
+    const results = await Promise.all(
+      Array.from({ length: 4 }, () => review(patient, id, { rating: 4, comment: 'twice' })),
+    );
     expect(results.filter((r) => r.status === 200)).toHaveLength(1);
     expect(results.filter((r) => r.status === 409)).toHaveLength(3);
     expect((await Doctor.findById(doctor.id)).rating.count).toBe(1);
@@ -118,7 +129,10 @@ describe('reviews', () => {
 
     const all = await h.request.get('/api/admin/reviews').set(as(admin)).query({ doctorId: doctor.id });
     expect(all.body.data.total).toBe(2);
-    const low = await h.request.get('/api/admin/reviews').set(as(admin)).query({ doctorId: doctor.id, maxRating: 2 });
+    const low = await h.request
+      .get('/api/admin/reviews')
+      .set(as(admin))
+      .query({ doctorId: doctor.id, maxRating: 2 });
     expect(low.body.data.items.map((r) => r.comment)).toEqual(['Awful']);
 
     const target = low.body.data.items[0];
@@ -140,7 +154,9 @@ describe('reviews', () => {
   it('resets the aggregate to zero when the last review is removed', async () => {
     const id = await h.completed(patient, doctor);
     await review(patient, id, { rating: 2, comment: '' });
-    const { items } = (await h.request.get('/api/admin/reviews').set(as(admin)).query({ doctorId: doctor.id })).body.data;
+    const { items } = (
+      await h.request.get('/api/admin/reviews').set(as(admin)).query({ doctorId: doctor.id })
+    ).body.data;
     await h.request.delete(`/api/admin/reviews/${items[0].id}`).set(as(admin)).expect(200);
     const profile = await h.request.get(`/api/doctors/${doctor.id}`);
     expect(profile.body.data.rating).toEqual({ average: 0, count: 0 });

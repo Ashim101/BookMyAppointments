@@ -36,7 +36,8 @@ export function createRazorpayProvider({ keyId, keySecret, webhookSecret, client
       const order = await api.orders.create({ amount: toMinorUnits(amount), currency, receipt });
       return { orderId: order.id };
     },
-    verifyPayment: ({ orderId, paymentId, signature }) => verifyPaymentSignature(orderId, paymentId, signature, keySecret),
+    verifyPayment: ({ orderId, paymentId, signature }) =>
+      verifyPaymentSignature(orderId, paymentId, signature, keySecret),
     verifyWebhook: (rawBody, signature) => verifyWebhookSignature(rawBody, signature, webhookSecret),
     async refund({ paymentId, amount }) {
       const refund = await api.payments.refund(paymentId, { amount: toMinorUnits(amount) });
@@ -47,5 +48,7 @@ export function createRazorpayProvider({ keyId, keySecret, webhookSecret, client
 
 export function createPaymentProvider({ config }) {
   const { mode, keyId, keySecret, webhookSecret } = config.payments;
-  return mode === 'razorpay' ? createRazorpayProvider({ keyId, keySecret, webhookSecret }) : createMockProvider();
+  return mode === 'razorpay'
+    ? createRazorpayProvider({ keyId, keySecret, webhookSecret })
+    : createMockProvider();
 }

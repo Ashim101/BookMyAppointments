@@ -10,7 +10,17 @@ import { toAuthUser } from './principals.js';
 const RESET_TTL_MS = 30 * 60_000;
 const MODELS = { patient: Patient, doctor: Doctor };
 
-export function createAuthService({ config, clock, tokens, otp, principals, loginGuard, mailer, googleVerifier, logger }) {
+export function createAuthService({
+  config,
+  clock,
+  tokens,
+  otp,
+  principals,
+  loginGuard,
+  mailer,
+  googleVerifier,
+  logger,
+}) {
   const invalidCredentials = () => new AppError('INVALID_CREDENTIALS', 'Incorrect email or password');
   let decoyHash;
 
@@ -36,10 +46,15 @@ export function createAuthService({ config, clock, tokens, otp, principals, logi
   });
 
   async function register({ name, email, password, otp: code }, meta) {
-    if (await Patient.exists({ email })) throw new AppError('EMAIL_TAKEN', 'An account with this email already exists');
+    if (await Patient.exists({ email }))
+      throw new AppError('EMAIL_TAKEN', 'An account with this email already exists');
     await otp.verify(email, code);
     try {
-      const patient = await Patient.create({ name, email, passwordHash: await bcrypt.hash(password, config.bcryptRounds) });
+      const patient = await Patient.create({
+        name,
+        email,
+        passwordHash: await bcrypt.hash(password, config.bcryptRounds),
+      });
       return startSession(patientPrincipal(patient), meta);
     } catch (err) {
       if (err.code === 11000) throw new AppError('EMAIL_TAKEN', 'An account with this email already exists');
@@ -65,7 +80,8 @@ export function createAuthService({ config, clock, tokens, otp, principals, logi
     await loginGuard.assertNotLocked(role, email);
     let principal;
     try {
-      principal = role === 'admin' ? await loginAdmin(email, password) : await loginAccount(role, email, password);
+      principal =
+        role === 'admin' ? await loginAdmin(email, password) : await loginAccount(role, email, password);
     } catch (err) {
       if (err.code === 'INVALID_CREDENTIALS') await loginGuard.recordFailure(role, email);
       throw err;
@@ -88,7 +104,12 @@ export function createAuthService({ config, clock, tokens, otp, principals, logi
     const email = profile.email.toLowerCase();
     let patient = await Patient.findOne({ $or: [{ googleId: profile.sub }, { email }] });
     if (!patient) {
-      patient = await Patient.create({ name: profile.name, email, googleId: profile.sub, image: profile.picture });
+      patient = await Patient.create({
+        name: profile.name,
+        email,
+        googleId: profile.sub,
+        image: profile.picture,
+      });
     } else if (!patient.googleId) {
       patient.googleId = profile.sub;
       await patient.save();
@@ -137,7 +158,9 @@ export function createAuthService({ config, clock, tokens, otp, principals, logi
     const base = role === 'doctor' ? config.appUrls.admin : config.appUrls.patient;
     const link = `${base}/reset-password?token=${token}&role=${role}`;
     // Failures are logged, never surfaced: the endpoint must answer identically for every email.
-    await mailer.send({ to: email, ...resetEmail(link) }).catch((err) => logger.error({ err }, 'password reset email failed'));
+    await mailer
+      .send({ to: email, ...resetEmail(link) })
+      .catch((err) => logger.error({ err }, 'password reset email failed'));
     return null;
   }
 
@@ -148,10 +171,22 @@ export function createAuthService({ config, clock, tokens, otp, principals, logi
       { $set: { usedAt: now } },
     );
     if (!reset) throw badRequest('This reset link is invalid or has expired');
-    await MODELS[reset.role].updateOne({ _id: reset.userId }, { $set: { passwordHash: await bcrypt.hash(password, config.bcryptRounds) } });
+    await MODELS[reset.role].updateOne(
+      { _id: reset.userId },
+      { $set: { passwordHash: await bcrypt.hash(password, config.bcryptRounds) } },
+    );
     await tokens.revokeAll(reset.userId, reset.role);
     return null;
   }
 
-  return { requestOtp: ({ email }) => otp.request(email), register, login, google, refresh, logout, forgotPassword, resetPassword };
+  return {
+    requestOtp: ({ email }) => otp.request(email),
+    register,
+    login,
+    google,
+    refresh,
+    logout,
+    forgotPassword,
+    resetPassword,
+  };
 }

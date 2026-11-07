@@ -15,7 +15,15 @@ describe('notifications', () => {
     patient = await h.patientSession();
     other = await h.patientSession();
     const make = (user, role, n, read = false) =>
-      Notification.create({ userId: user.id, role, type: 'test', title: `Title ${n}`, message: `Message ${n}`, link: n % 2 ? `/appointments/${n}` : null, read });
+      Notification.create({
+        userId: user.id,
+        role,
+        type: 'test',
+        title: `Title ${n}`,
+        message: `Message ${n}`,
+        link: n % 2 ? `/appointments/${n}` : null,
+        read,
+      });
     for (let n = 1; n <= 5; n += 1) await make(patient, 'patient', n, n <= 2);
     await make(other, 'patient', 9);
     await make(doctor, 'doctor', 10);
@@ -26,7 +34,13 @@ describe('notifications', () => {
     const res = await h.request.get('/api/notifications').set(as(patient));
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ page: 1, limit: 10, total: 5, totalPages: 1, unreadCount: 3 });
-    expect(res.body.data.items.map((n) => n.title)).toEqual(['Title 5', 'Title 4', 'Title 3', 'Title 2', 'Title 1']);
+    expect(res.body.data.items.map((n) => n.title)).toEqual([
+      'Title 5',
+      'Title 4',
+      'Title 3',
+      'Title 2',
+      'Title 1',
+    ]);
     expect(res.body.data.items[0]).toEqual({
       id: expect.any(String),
       type: 'test',
@@ -43,7 +57,10 @@ describe('notifications', () => {
     const unread = await h.request.get('/api/notifications').set(as(patient)).query({ unread: 'true' });
     expect(unread.body.data.total).toBe(3);
     expect(unread.body.data.items.every((n) => !n.read)).toBe(true);
-    const page = await h.request.get('/api/notifications').set(as(patient)).query({ unread: 'true', limit: 2, page: 2 });
+    const page = await h.request
+      .get('/api/notifications')
+      .set(as(patient))
+      .query({ unread: 'true', limit: 2, page: 2 });
     expect(page.body.data).toMatchObject({ total: 3, totalPages: 2, unreadCount: 3 });
     expect(page.body.data.items).toHaveLength(1);
   });
@@ -57,7 +74,8 @@ describe('notifications', () => {
   });
 
   it('marks one notification read and refuses other people notifications', async () => {
-    const mine = (await h.request.get('/api/notifications').set(as(patient)).query({ unread: 'true' })).body.data.items[0];
+    const mine = (await h.request.get('/api/notifications').set(as(patient)).query({ unread: 'true' })).body
+      .data.items[0];
     const res = await h.request.patch(`/api/notifications/${mine.id}/read`).set(as(patient));
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ id: mine.id, read: true });

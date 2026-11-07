@@ -10,9 +10,26 @@ describe('public catalogue', () => {
 
   beforeAll(async () => {
     h = await startHarness();
-    cardio = await h.doctor({ name: 'Dr. Alice Heart', specialityName: 'Cardiology', fees: 800, experienceYears: 12, rating: { average: 4.66, count: 3 } });
-    derma = await h.doctor({ name: 'Dr. Bob Skin', specialityName: 'Dermatology', fees: 300, experienceYears: 3, available: false });
-    neuro = await h.doctor({ name: 'Dr. Carol Brain', specialityName: 'Neurology', fees: 500, experienceYears: 20 });
+    cardio = await h.doctor({
+      name: 'Dr. Alice Heart',
+      specialityName: 'Cardiology',
+      fees: 800,
+      experienceYears: 12,
+      rating: { average: 4.66, count: 3 },
+    });
+    derma = await h.doctor({
+      name: 'Dr. Bob Skin',
+      specialityName: 'Dermatology',
+      fees: 300,
+      experienceYears: 3,
+      available: false,
+    });
+    neuro = await h.doctor({
+      name: 'Dr. Carol Brain',
+      specialityName: 'Neurology',
+      fees: 500,
+      experienceYears: 20,
+    });
     await h.doctor({ name: 'Dr. Hidden', specialityName: 'Cardiology', fees: 100, active: false });
     await h.speciality('Orthopedics');
   });
@@ -66,7 +83,9 @@ describe('public catalogue', () => {
     });
 
     it('filters by speciality, name, fee range and availability', async () => {
-      expect((await list({ speciality: 'cardiology' })).body.data.items.map((d) => d.id)).toEqual([cardio.id]);
+      expect((await list({ speciality: 'cardiology' })).body.data.items.map((d) => d.id)).toEqual([
+        cardio.id,
+      ]);
       expect((await list({ search: 'bob' })).body.data.items.map((d) => d.id)).toEqual([derma.id]);
       expect((await list({ minFee: 400, maxFee: 600 })).body.data.items.map((d) => d.id)).toEqual([neuro.id]);
       expect((await list({ minFee: 500 })).body.data.total).toBe(2);
@@ -100,7 +119,13 @@ describe('public catalogue', () => {
     });
 
     it('validates query parameters', async () => {
-      for (const query of [{ sort: 'cheapest' }, { limit: 101 }, { page: 0 }, { minFee: 'abc' }, { available: 'yes' }]) {
+      for (const query of [
+        { sort: 'cheapest' },
+        { limit: 101 },
+        { page: 0 },
+        { minFee: 'abc' },
+        { available: 'yes' },
+      ]) {
         const res = await list(query);
         expect(res.status, JSON.stringify(query)).toBe(400);
         expect(res.body.error.code).toBe('VALIDATION_ERROR');
@@ -111,7 +136,10 @@ describe('public catalogue', () => {
       const first = await list({ sort: 'name' });
       expect(first.headers.etag).toBeTruthy();
       expect(first.headers['cache-control']).toContain('must-revalidate');
-      const second = await h.request.get('/api/doctors').query({ sort: 'name' }).set('If-None-Match', first.headers.etag);
+      const second = await h.request
+        .get('/api/doctors')
+        .query({ sort: 'name' })
+        .set('If-None-Match', first.headers.etag);
       expect(second.status).toBe(304);
     });
   });
@@ -149,7 +177,20 @@ describe('public catalogue', () => {
       expect(days[0]).toMatchObject({ date: h.day(0), weekday: 1 });
       expect(days[6].date).toBe(h.day(6));
       expect(days[1].slots.map((s) => s.time)).toEqual([
-        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
+        '09:00',
+        '09:30',
+        '10:00',
+        '10:30',
+        '11:00',
+        '11:30',
+        '13:00',
+        '13:30',
+        '14:00',
+        '14:30',
+        '15:00',
+        '15:30',
+        '16:00',
+        '16:30',
       ]);
     });
 
@@ -163,7 +204,13 @@ describe('public catalogue', () => {
 
     it('leaves non-working days and leave days empty', async () => {
       const weekdays = await h.doctor({
-        schedule: { slotMinutes: 60, weekly: [{ day: 1, start: '10:00', end: '12:00', breaks: [] }, { day: 3, start: '10:00', end: '12:00', breaks: [] }] },
+        schedule: {
+          slotMinutes: 60,
+          weekly: [
+            { day: 1, start: '10:00', end: '12:00', breaks: [] },
+            { day: 3, start: '10:00', end: '12:00', breaks: [] },
+          ],
+        },
       });
       await Leave.create({ doctor: weekdays.id, date: h.day(2), reason: 'Away' });
       const res = await h.request.get(`/api/doctors/${weekdays.id}/slots`).query({ from: h.day(0), days: 4 });

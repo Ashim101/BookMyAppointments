@@ -53,7 +53,11 @@ const schema = z
     CURRENCY: z.string().length(3).toUpperCase().default('INR'),
     CANCELLATION_CUTOFF_HOURS: z.coerce.number().min(0).max(168).default(2),
     BOOKING_WINDOW_DAYS: z.coerce.number().int().min(1).max(365).default(14),
-    DEFAULT_SLOT_MINUTES: z.coerce.number().int().refine((v) => [15, 20, 30, 45, 60].includes(v)).default(30),
+    DEFAULT_SLOT_MINUTES: z.coerce
+      .number()
+      .int()
+      .refine((v) => [15, 20, 30, 45, 60].includes(v))
+      .default(30),
 
     APP_URL_PATIENT: z.url().default('http://localhost:5173'),
     APP_URL_ADMIN: z.url().default('http://localhost:5174'),
@@ -81,37 +85,52 @@ const schema = z
   .superRefine((env, ctx) => {
     if (env.PAYMENTS_MODE === 'razorpay') {
       for (const key of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET']) {
-        if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: 'required when PAYMENTS_MODE=razorpay' });
+        if (!env[key])
+          ctx.addIssue({ code: 'custom', path: [key], message: 'required when PAYMENTS_MODE=razorpay' });
       }
     }
     if (env.NODE_ENV === 'production' && env.PAYMENTS_MODE === 'mock' && env.RAZORPAY_KEY_ID) {
-      ctx.addIssue({ code: 'custom', path: ['PAYMENTS_MODE'], message: 'mock payments must not run alongside live keys in production' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENTS_MODE'],
+        message: 'mock payments must not run alongside live keys in production',
+      });
     }
   });
 
 export class ConfigError extends Error {
   constructor(issues) {
-    super(`Invalid environment configuration:\n${issues.map((i) => `  - ${i.path.join('.') || 'env'}: ${i.message}`).join('\n')}`);
+    super(
+      `Invalid environment configuration:\n${issues.map((i) => `  - ${i.path.join('.') || 'env'}: ${i.message}`).join('\n')}`,
+    );
     this.name = 'ConfigError';
   }
 }
 
 export function loadConfig(source = process.env) {
-  const present = Object.fromEntries(Object.entries(source).filter(([, value]) => value !== undefined && value !== ''));
+  const present = Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== undefined && value !== ''),
+  );
   const parsed = schema.safeParse(present);
   if (!parsed.success) throw new ConfigError(parsed.error.issues);
   const e = parsed.data;
 
-  const cloudinary = e.CLOUDINARY_CLOUD_NAME && e.CLOUDINARY_API_KEY && e.CLOUDINARY_API_SECRET
-    ? { cloudName: e.CLOUDINARY_CLOUD_NAME, apiKey: e.CLOUDINARY_API_KEY, apiSecret: e.CLOUDINARY_API_SECRET }
-    : null;
+  const cloudinary =
+    e.CLOUDINARY_CLOUD_NAME && e.CLOUDINARY_API_KEY && e.CLOUDINARY_API_SECRET
+      ? {
+          cloudName: e.CLOUDINARY_CLOUD_NAME,
+          apiKey: e.CLOUDINARY_API_KEY,
+          apiSecret: e.CLOUDINARY_API_SECRET,
+        }
+      : null;
 
   return Object.freeze({
     env: e.NODE_ENV,
     isProduction: e.NODE_ENV === 'production',
     port: e.PORT,
     mongoUri: e.MONGODB_URI,
-    logLevel: e.LOG_LEVEL ?? (e.NODE_ENV === 'production' ? 'info' : e.NODE_ENV === 'test' ? 'silent' : 'debug'),
+    logLevel:
+      e.LOG_LEVEL ?? (e.NODE_ENV === 'production' ? 'info' : e.NODE_ENV === 'test' ? 'silent' : 'debug'),
     publicUrl: (e.PUBLIC_URL ?? `http://localhost:${e.PORT}`).replace(/\/$/, ''),
     trustProxy: e.TRUST_PROXY,
     bodyLimit: e.JSON_BODY_LIMIT,
@@ -125,8 +144,14 @@ export function loadConfig(source = process.env) {
     },
     admin: { email: e.ADMIN_EMAIL?.toLowerCase() ?? null, passwordHash: e.ADMIN_PASSWORD_HASH ?? null },
     corsOrigins: e.CORS_ORIGINS,
-    loginLockout: { maxFailures: e.LOGIN_MAX_FAILURES, durationMs: Math.round(e.LOGIN_LOCKOUT_MINUTES * 60_000) },
-    authRateLimit: { max: e.AUTH_RATE_LIMIT_MAX, windowMs: Math.round(e.AUTH_RATE_LIMIT_WINDOW_MINUTES * 60_000) },
+    loginLockout: {
+      maxFailures: e.LOGIN_MAX_FAILURES,
+      durationMs: Math.round(e.LOGIN_LOCKOUT_MINUTES * 60_000),
+    },
+    authRateLimit: {
+      max: e.AUTH_RATE_LIMIT_MAX,
+      windowMs: Math.round(e.AUTH_RATE_LIMIT_WINDOW_MINUTES * 60_000),
+    },
     clinic: {
       timezone: e.CLINIC_TIMEZONE,
       currency: e.CURRENCY,

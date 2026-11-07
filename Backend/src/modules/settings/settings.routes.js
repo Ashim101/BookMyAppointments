@@ -4,17 +4,31 @@ import { validate } from '../../middlewares/validate.js';
 import { asyncHandler, ok } from '../../utils/asyncHandler.js';
 
 const updateSchema = {
-  body: z.object({
-    cancellationCutoffHours: z.number().min(0).max(168),
-    bookingWindowDays: z.number().int().min(1).max(365),
-    defaultSlotMinutes: z.union([z.literal(15), z.literal(20), z.literal(30), z.literal(45), z.literal(60)]),
-    currency: z.string().length(3).transform((value) => value.toUpperCase()),
-  }).partial(),
+  body: z
+    .object({
+      cancellationCutoffHours: z.number().min(0).max(168),
+      bookingWindowDays: z.number().int().min(1).max(365),
+      defaultSlotMinutes: z.union([
+        z.literal(15),
+        z.literal(20),
+        z.literal(30),
+        z.literal(45),
+        z.literal(60),
+      ]),
+      currency: z
+        .string()
+        .length(3)
+        .transform((value) => value.toUpperCase()),
+    })
+    .partial(),
 };
 
 export function createSettingsAdminRoutes({ settings, audit }) {
   const router = Router();
-  router.get('/', asyncHandler(async (_req, res) => ok(res, await settings.get())));
+  router.get(
+    '/',
+    asyncHandler(async (_req, res) => ok(res, await settings.get())),
+  );
   router.put(
     '/',
     validate(updateSchema),

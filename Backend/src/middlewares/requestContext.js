@@ -13,7 +13,8 @@ export function createRequestContext(logger) {
       res.setHeader('X-Request-Id', id);
       return id;
     },
-    customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
+    customLogLevel: (_req, res, err) =>
+      err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
     serializers: {
       req: (req) => ({ id: req.id, method: req.method, url: req.url.split('?')[0] }),
       res: (res) => ({ statusCode: res.statusCode }),

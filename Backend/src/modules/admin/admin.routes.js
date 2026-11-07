@@ -5,7 +5,20 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { streamCsv } from '../../utils/csv.js';
 import { listAppointmentsSchema } from '../appointments/appointment.validators.js';
 
-export const EXPORT_COLUMNS = ['id', 'date', 'time', 'patient', 'patientEmail', 'doctor', 'speciality', 'status', 'paymentStatus', 'fee', 'currency', 'createdAt'];
+export const EXPORT_COLUMNS = [
+  'id',
+  'date',
+  'time',
+  'patient',
+  'patientEmail',
+  'doctor',
+  'speciality',
+  'status',
+  'paymentStatus',
+  'fee',
+  'currency',
+  'createdAt',
+];
 
 export const toExportRow = (a) => [
   String(a._id),

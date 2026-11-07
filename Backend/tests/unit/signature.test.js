@@ -35,7 +35,9 @@ describe('webhook signature', () => {
   it('verifies the exact raw bytes', () => {
     const signature = hmac('whsec', body);
     expect(verifyWebhookSignature(body, signature, 'whsec')).toBe(true);
-    expect(verifyWebhookSignature(Buffer.from('{"event":"payment.captured" }'), signature, 'whsec')).toBe(false);
+    expect(verifyWebhookSignature(Buffer.from('{"event":"payment.captured" }'), signature, 'whsec')).toBe(
+      false,
+    );
     expect(verifyWebhookSignature(body, signature, 'wrong')).toBe(false);
     expect(verifyWebhookSignature(Buffer.alloc(0), signature, 'whsec')).toBe(false);
     expect(verifyWebhookSignature(body, undefined, 'whsec')).toBe(false);

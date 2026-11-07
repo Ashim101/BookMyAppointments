@@ -17,7 +17,10 @@ export const toPublicDto = (doctor, specialityName = '') => ({
   currency: doctor.currency,
   available: doctor.available,
   address: toAddressDto(doctor.address),
-  rating: { average: doctor.rating.count > 0 ? round1(doctor.rating.average) : 0, count: doctor.rating.count },
+  rating: {
+    average: doctor.rating.count > 0 ? round1(doctor.rating.average) : 0,
+    count: doctor.rating.count,
+  },
 });
 
 export const toAdminDto = (doctor, specialityName = '') => ({

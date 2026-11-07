@@ -20,7 +20,11 @@ export function createPatientService({ storage, tokens }) {
     if (file) changes.image = await storage.saveImage(file);
 
     const previous = file ? await Patient.findById(id).select('image').lean() : null;
-    const patient = await Patient.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', runValidators: true });
+    const patient = await Patient.findByIdAndUpdate(
+      id,
+      { $set: changes },
+      { returnDocument: 'after', runValidators: true },
+    );
     if (!patient) throw notFound('Patient');
     await storage.removeImage(previous?.image);
     return toPatientDto(patient);
@@ -45,7 +49,10 @@ export function createPatientService({ storage, tokens }) {
       { $group: { _id: '$patient', count: { $sum: 1 } } },
     ]);
     const byPatient = new Map(counts.map((row) => [String(row._id), row.count]));
-    const items = patients.map((p) => ({ ...toPatientDto(p), appointmentsCount: byPatient.get(String(p._id)) ?? 0 }));
+    const items = patients.map((p) => ({
+      ...toPatientDto(p),
+      appointmentsCount: byPatient.get(String(p._id)) ?? 0,
+    }));
     return buildPage(items, total, page, limit);
   }
 

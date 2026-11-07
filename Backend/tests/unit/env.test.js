@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../../src/config/env.js';
 
@@ -6,11 +7,49 @@ const valid = {
   JWT_REFRESH_SECRET: 'b'.repeat(32),
 };
 
+const parseDotenv = (text) =>
+  Object.fromEntries(
+    text
+      .split('\n')
+      .filter((line) => line.trim() && !line.startsWith('#'))
+      .map((line) => {
+        const index = line.indexOf('=');
+        return [line.slice(0, index), line.slice(index + 1).replace(/^"(.*)"$/, '$1')];
+      }),
+  );
+
+describe('.env.example', () => {
+  it('is a valid configuration once the two JWT secrets are filled in', () => {
+    const example = parseDotenv(readFileSync(new URL('../../.env.example', import.meta.url), 'utf8'));
+    expect(example.JWT_ACCESS_SECRET).toBe('');
+    const config = loadConfig({
+      ...example,
+      JWT_ACCESS_SECRET: 'dummy-access-secret-value',
+      JWT_REFRESH_SECRET: 'dummy-refresh-secret-value',
+    });
+    expect(config.port).toBe(4000);
+    expect(config.mailFrom).toBe('BookMyAppointments <no-reply@example.com>');
+    expect(config.loginLockout).toEqual({ maxFailures: 10, durationMs: 900_000 });
+    expect(config.admin.email).toBeNull();
+  });
+});
+
 describe('loadConfig', () => {
   it('applies defaults and treats empty strings as unset', () => {
-    const config = loadConfig({ ...valid, GOOGLE_CLIENT_ID: '', SMTP_HOST: '', ADMIN_EMAIL: '', CLOUDINARY_CLOUD_NAME: '' });
+    const config = loadConfig({
+      ...valid,
+      GOOGLE_CLIENT_ID: '',
+      SMTP_HOST: '',
+      ADMIN_EMAIL: '',
+      CLOUDINARY_CLOUD_NAME: '',
+    });
     expect(config.port).toBe(4000);
-    expect(config.clinic).toMatchObject({ timezone: 'Asia/Kathmandu', currency: 'INR', cancellationCutoffHours: 2, bookingWindowDays: 14 });
+    expect(config.clinic).toMatchObject({
+      timezone: 'Asia/Kathmandu',
+      currency: 'INR',
+      cancellationCutoffHours: 2,
+      bookingWindowDays: 14,
+    });
     expect(config.corsOrigins).toEqual(['http://localhost:5173', 'http://localhost:5174']);
     expect(config.payments.mode).toBe('mock');
     expect(config.googleClientId).toBeNull();
@@ -55,7 +94,9 @@ describe('loadConfig', () => {
   });
 
   it('requires Razorpay credentials when that mode is selected', () => {
-    expect(() => loadConfig({ ...valid, PAYMENTS_MODE: 'razorpay' })).toThrow(/RAZORPAY_KEY_ID: required when PAYMENTS_MODE=razorpay/);
+    expect(() => loadConfig({ ...valid, PAYMENTS_MODE: 'razorpay' })).toThrow(
+      /RAZORPAY_KEY_ID: required when PAYMENTS_MODE=razorpay/,
+    );
     const config = loadConfig({
       ...valid,
       PAYMENTS_MODE: 'razorpay',
@@ -67,7 +108,9 @@ describe('loadConfig', () => {
   });
 
   it('refuses mock payments next to live keys in production', () => {
-    expect(() => loadConfig({ ...valid, NODE_ENV: 'production', RAZORPAY_KEY_ID: 'rzp_live' })).toThrow(/mock payments must not run/);
+    expect(() => loadConfig({ ...valid, NODE_ENV: 'production', RAZORPAY_KEY_ID: 'rzp_live' })).toThrow(
+      /mock payments must not run/,
+    );
   });
 
   it('rejects a malformed admin hash and slot length', () => {

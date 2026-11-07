@@ -10,7 +10,8 @@ function normalize(err) {
     const message = err.code === 'LIMIT_FILE_SIZE' ? 'Image must be 2 MB or smaller' : 'Invalid file upload';
     return new AppError('VALIDATION_ERROR', message, [{ path: err.field ?? 'image', message }]);
   }
-  if (err.type === 'entity.parse.failed') return new AppError('BAD_REQUEST', 'Request body is not valid JSON');
+  if (err.type === 'entity.parse.failed')
+    return new AppError('BAD_REQUEST', 'Request body is not valid JSON');
   if (err.type === 'entity.too.large') return new AppError('BAD_REQUEST', 'Request body is too large');
   if (err.code === 11000) return new AppError('CONFLICT', 'A record with these values already exists');
   if (err.name === 'CastError') return new AppError('NOT_FOUND', 'Resource not found');
@@ -20,7 +21,8 @@ function normalize(err) {
 export const notFoundHandler = (req, res) =>
   fail(res, 404, 'NOT_FOUND', `Route ${req.method} ${req.path} not found`);
 
-export const createErrorHandler = (logger) =>
+export const createErrorHandler =
+  (logger) =>
   // Express identifies error handlers by their four-argument signature.
   (err, req, res, _next) => {
     if (res.headersSent) {

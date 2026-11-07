@@ -27,7 +27,11 @@ export function idempotent(req, res, next) {
   const key = req.get('idempotency-key');
   if (!key) return next();
   if (!KEY_PATTERN.test(key)) {
-    return next(new AppError('VALIDATION_ERROR', 'Invalid Idempotency-Key', [{ path: 'Idempotency-Key', message: 'Use 8 to 64 letters, digits, dashes or underscores' }]));
+    return next(
+      new AppError('VALIDATION_ERROR', 'Invalid Idempotency-Key', [
+        { path: 'Idempotency-Key', message: 'Use 8 to 64 letters, digits, dashes or underscores' },
+      ]),
+    );
   }
   return handle(req, res, next, { owner: req.user.id, key }).catch(next);
 }
@@ -41,18 +45,22 @@ async function handle(req, res, next, scope) {
     const previous = await IdempotencyKey.findOne(scope).lean();
     if (!previous) return next(new AppError('CONFLICT', 'Please retry the request'));
     if (previous.requestHash !== requestHash) {
-      return next(new AppError('BAD_REQUEST', 'This Idempotency-Key was already used with a different request'));
+      return next(
+        new AppError('BAD_REQUEST', 'This Idempotency-Key was already used with a different request'),
+      );
     }
-    if (previous.state !== 'done') return next(new AppError('CONFLICT', 'A request with this Idempotency-Key is still being processed'));
+    if (previous.state !== 'done')
+      return next(new AppError('CONFLICT', 'A request with this Idempotency-Key is still being processed'));
     res.setHeader('Idempotent-Replay', 'true');
     return res.status(previous.status).json(previous.body);
   }
 
   const json = res.json.bind(res);
   res.json = (payload) => {
-    const outcome = res.statusCode < 400
-      ? IdempotencyKey.updateOne(scope, { $set: { state: 'done', status: res.statusCode, body: payload } })
-      : IdempotencyKey.deleteOne(scope);
+    const outcome =
+      res.statusCode < 400
+        ? IdempotencyKey.updateOne(scope, { $set: { state: 'done', status: res.statusCode, body: payload } })
+        : IdempotencyKey.deleteOne(scope);
     outcome.finally(() => json(payload));
     return res;
   };

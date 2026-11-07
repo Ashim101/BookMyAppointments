@@ -12,8 +12,19 @@ const idSchema = { params: z.object({ id: objectId }) };
 export function createNotificationRoutes({ notifications, authenticate }) {
   const router = Router();
   router.use(authenticate, authorize('patient', 'doctor'));
-  router.get('/', validate(listSchema), asyncHandler(async (req, res) => ok(res, await notifications.list(req.user, req.valid.query))));
-  router.patch('/read-all', asyncHandler(async (req, res) => ok(res, await notifications.markAllRead(req.user))));
-  router.patch('/:id/read', validate(idSchema), asyncHandler(async (req, res) => ok(res, await notifications.markRead(req.user, req.valid.params.id))));
+  router.get(
+    '/',
+    validate(listSchema),
+    asyncHandler(async (req, res) => ok(res, await notifications.list(req.user, req.valid.query))),
+  );
+  router.patch(
+    '/read-all',
+    asyncHandler(async (req, res) => ok(res, await notifications.markAllRead(req.user))),
+  );
+  router.patch(
+    '/:id/read',
+    validate(idSchema),
+    asyncHandler(async (req, res) => ok(res, await notifications.markRead(req.user, req.valid.params.id))),
+  );
   return router;
 }

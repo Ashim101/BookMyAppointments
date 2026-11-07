@@ -25,7 +25,8 @@ const patient = { id: 'p1', role: 'patient' };
 const doctor = { id: 'd1', role: 'doctor' };
 const admin = { id: 'admin', role: 'admin' };
 const at = (offsetMs) => START + offsetMs;
-const run = (action, who, now, overrides) => check(action, { appointment: appointment(overrides), user: who, now, settings });
+const run = (action, who, now, overrides) =>
+  check(action, { appointment: appointment(overrides), user: who, now, settings });
 
 describe('transition table', () => {
   it('only allows booked appointments to move on', () => {
@@ -105,7 +106,9 @@ describe('pay and review', () => {
   it('lets a patient review a completed appointment once', () => {
     expect(run('review', patient, at(HOUR), { status: 'completed' })).toBeNull();
     expect(run('review', patient, at(HOUR))?.code).toBe('INVALID_STATE');
-    expect(run('review', patient, at(HOUR), { status: 'completed', review: { rating: 5 } })?.code).toBe('ALREADY_REVIEWED');
+    expect(run('review', patient, at(HOUR), { status: 'completed', review: { rating: 5 } })?.code).toBe(
+      'ALREADY_REVIEWED',
+    );
   });
 });
 
@@ -120,14 +123,25 @@ describe('actions and assertions', () => {
       canComplete: false,
       canMarkNoShow: false,
     });
-    expect(computeActions(ctx(doctor, at(60_000)))).toMatchObject({ canCancel: false, canComplete: true, canMarkNoShow: true, canPay: false });
-    expect(computeActions(ctx(admin, at(HOUR)))).toMatchObject({ canCancel: true, canComplete: false, canReschedule: false });
+    expect(computeActions(ctx(doctor, at(60_000)))).toMatchObject({
+      canCancel: false,
+      canComplete: true,
+      canMarkNoShow: true,
+      canPay: false,
+    });
+    expect(computeActions(ctx(admin, at(HOUR)))).toMatchObject({
+      canCancel: true,
+      canComplete: false,
+      canReschedule: false,
+    });
   });
 
   it('throws an AppError with the denial code', () => {
-    expect(() => assertAllowed('cancel', { appointment: appointment(), user: patient, now: at(-HOUR), settings })).toThrow(
-      expect.objectContaining({ code: 'CANCELLATION_WINDOW_PASSED', status: 422 }),
-    );
-    expect(() => assertAllowed('cancel', { appointment: appointment(), user: patient, now: at(-5 * HOUR), settings })).not.toThrow();
+    expect(() =>
+      assertAllowed('cancel', { appointment: appointment(), user: patient, now: at(-HOUR), settings }),
+    ).toThrow(expect.objectContaining({ code: 'CANCELLATION_WINDOW_PASSED', status: 422 }));
+    expect(() =>
+      assertAllowed('cancel', { appointment: appointment(), user: patient, now: at(-5 * HOUR), settings }),
+    ).not.toThrow();
   });
 });

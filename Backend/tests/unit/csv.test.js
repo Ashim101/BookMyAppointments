@@ -17,9 +17,12 @@ describe('escapeCsv', () => {
     expect(escapeCsv('line1\r\nline2')).toBe('"line1\r\nline2"');
   });
 
-  it.each(['=SUM(A1)', '+1', '-1', '@cmd', '\t=1', '\r=1'])('neutralises the formula prefix in %j', (value) => {
-    expect(escapeCsv(value).replace(/^"/, '').startsWith("'")).toBe(true);
-  });
+  it.each(['=SUM(A1)', '+1', '-1', '@cmd', '\t=1', '\r=1'])(
+    'neutralises the formula prefix in %j',
+    (value) => {
+      expect(escapeCsv(value).replace(/^"/, '').startsWith("'")).toBe(true);
+    },
+  );
 
   it('prefixes then quotes values that are both formulas and need quoting', () => {
     expect(escapeCsv('=HYPERLINK("http://x","y")')).toBe('"\'=HYPERLINK(""http://x"",""y"")"');

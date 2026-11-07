@@ -6,20 +6,32 @@ import { paginationShape } from '../../utils/pagination.js';
 import { objectId } from '../../utils/schemas.js';
 
 const adminListSchema = {
-  query: z.object({ ...paginationShape, doctorId: objectId.optional(), maxRating: z.coerce.number().int().min(1).max(5).optional() }),
+  query: z.object({
+    ...paginationShape,
+    doctorId: objectId.optional(),
+    maxRating: z.coerce.number().int().min(1).max(5).optional(),
+  }),
 };
 const idSchema = { params: z.object({ id: objectId }) };
 
 export function createReviewController(reviews) {
   return {
-    create: asyncHandler(async (req, res) => ok(res, await reviews.create(req.user, req.valid.params.id, req.valid.body))),
-    listForDoctor: asyncHandler(async (req, res) => ok(res, await reviews.listForDoctor(req.valid.params.id, req.valid.query))),
+    create: asyncHandler(async (req, res) =>
+      ok(res, await reviews.create(req.user, req.valid.params.id, req.valid.body)),
+    ),
+    listForDoctor: asyncHandler(async (req, res) =>
+      ok(res, await reviews.listForDoctor(req.valid.params.id, req.valid.query)),
+    ),
   };
 }
 
 export function createReviewAdminRoutes({ reviews, audit }) {
   const router = Router();
-  router.get('/', validate(adminListSchema), asyncHandler(async (req, res) => ok(res, await reviews.listAll(req.valid.query))));
+  router.get(
+    '/',
+    validate(adminListSchema),
+    asyncHandler(async (req, res) => ok(res, await reviews.listAll(req.valid.query))),
+  );
   router.delete(
     '/:id',
     validate(idSchema),

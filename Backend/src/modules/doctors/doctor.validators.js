@@ -38,7 +38,10 @@ export const adminListDoctorsSchema = {
 
 const fields = {
   name: z.string().trim().min(2).max(80),
-  email: z.email().max(254).transform((value) => value.trim().toLowerCase()),
+  email: z
+    .email()
+    .max(254)
+    .transform((value) => value.trim().toLowerCase()),
   speciality: z.string().trim().min(1).max(80),
   degree: z.string().trim().max(120),
   experienceYears: z.coerce.number().int().min(0).max(80),
@@ -66,12 +69,14 @@ export const activeSchema = { params: idParams, body: z.object({ active: z.boole
 export const adminScheduleSchema = { params: idParams, body: scheduleBody };
 
 export const selfProfileSchema = {
-  body: z.object({
-    about: fields.about,
-    fees: fields.fees,
-    address: addressSchema,
-    available: z.boolean(),
-  }).partial(),
+  body: z
+    .object({
+      about: fields.about,
+      fees: fields.fees,
+      address: addressSchema,
+      available: z.boolean(),
+    })
+    .partial(),
 };
 
 export const scheduleSchema = { body: scheduleBody };

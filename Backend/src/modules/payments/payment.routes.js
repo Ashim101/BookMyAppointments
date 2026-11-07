@@ -18,8 +18,18 @@ const verifySchema = {
 export function createPaymentRoutes({ payments, authenticate }) {
   const router = Router();
   router.use(authenticate, authorize('patient'));
-  router.post('/order', validate(orderSchema), asyncHandler(async (req, res) => ok(res, await payments.createOrder(req.user, req.valid.body.appointmentId))));
-  router.post('/verify', validate(verifySchema), asyncHandler(async (req, res) => ok(res, await payments.verify(req.user, req.valid.body))));
+  router.post(
+    '/order',
+    validate(orderSchema),
+    asyncHandler(async (req, res) =>
+      ok(res, await payments.createOrder(req.user, req.valid.body.appointmentId)),
+    ),
+  );
+  router.post(
+    '/verify',
+    validate(verifySchema),
+    asyncHandler(async (req, res) => ok(res, await payments.verify(req.user, req.valid.body))),
+  );
   return router;
 }
 
