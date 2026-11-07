@@ -6,7 +6,7 @@ import { ChartEmpty, H, Legend, PALETTE, Tooltip, W, XAxis, YAxis, axisFor, plot
  * Vertical bars, grouped by default or `stacked`. Every group is focusable, so
  * the tooltip is reachable from the keyboard as well as the pointer.
  */
-export default function BarChart({ data, xKey, xFormat = String, series, stacked = false, valueFormat = String, label }) {
+export default function BarChart({ data, xKey, xFormat = String, series, stacked = false, valueFormat = String, axisFormat, label }) {
   const [active, setActive] = useState(null)
   if (!data?.length || data.every((d) => series.every((s) => !d[s.key]))) return <ChartEmpty />
 
@@ -21,7 +21,7 @@ export default function BarChart({ data, xKey, xFormat = String, series, stacked
     <figure>
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="group" aria-label={label} onMouseLeave={() => setActive(null)}>
-          <YAxis axis={axis} area={area} format={valueFormat} />
+          <YAxis axis={axis} area={area} format={axisFormat ?? valueFormat} />
           <XAxis labels={data.map((d) => xFormat(d[xKey]))} position={bands.center} area={area} />
           {data.map((d, i) => {
             let stackTop = 0

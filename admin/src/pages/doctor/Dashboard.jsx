@@ -75,7 +75,8 @@ export default function Dashboard() {
               xKey="period"
               xFormat={(p) => formatPeriod(p, 'month')}
               series={[{ key: 'amount', label: 'Earnings' }]}
-              valueFormat={(v) => (v >= 1000 ? formatCompact(v) : String(v))}
+              valueFormat={(v) => formatCurrency(v)}
+              axisFormat={formatCompact}
             />
           )}
         </Card>
