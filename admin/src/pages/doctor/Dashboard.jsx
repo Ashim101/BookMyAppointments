@@ -10,6 +10,7 @@ import ErrorState from '../../components/ErrorState'
 import PageHeader from '../../components/PageHeader'
 import StatusBadge from '../../components/StatusBadge'
 import BarChart from '../../components/charts/BarChart'
+import DonutChart from '../../components/charts/DonutChart'
 import Button from '../../components/ui/Button'
 import StatCard from '../../components/ui/StatCard'
 import { useFetch } from '../../hooks/useFetch'
@@ -81,6 +82,21 @@ export default function Dashboard() {
           )}
         </Card>
       </div>
+
+      {d && (
+        <Card title="Appointment outcomes" className="no-print mt-6">
+          <DonutChart
+            label="Appointment outcomes"
+            centerLabel="Appointments"
+            data={[
+              { label: 'Completed', value: d.appointments.completed, color: '#059669' },
+              { label: 'Upcoming', value: d.appointments.upcoming, color: '#0284c7' },
+              { label: 'Cancelled', value: d.appointments.cancelled, color: '#dc2626' },
+              { label: 'No-show', value: d.appointments.noShow, color: '#d97706' },
+            ]}
+          />
+        </Card>
+      )}
 
       <Card
         title={`Today's queue (${formatDate(today)})`}
