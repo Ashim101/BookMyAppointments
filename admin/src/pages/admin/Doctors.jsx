@@ -19,6 +19,7 @@ import { useFetch, useMutation } from '../../hooks/useFetch'
 import { useFilters } from '../../hooks/useFilters'
 import { useDebounce } from '../../hooks/useTimers'
 import { formatCurrency } from '../../lib/format'
+import DoctorDetail from './DoctorDetail'
 import DoctorForm from './DoctorForm'
 
 const DEFAULTS = { search: '', speciality: '', active: '', page: 1 }
@@ -29,6 +30,7 @@ export default function Doctors() {
   const search = useDebounce(filters.search)
   const [form, setForm] = useState(null)
   const [scheduleFor, setScheduleFor] = useState(null)
+  const [viewing, setViewing] = useState(null)
   const [toggleActive, setToggleActive] = useState(null)
 
   const specialities = useFetch(listSpecialities)
@@ -72,7 +74,9 @@ export default function Doctors() {
         <span className="flex items-center gap-3">
           <Avatar name={d.name} src={d.image} />
           <span>
-            <span className="block font-medium text-slate-900">{d.name}</span>
+            <button type="button" onClick={() => setViewing(d)} className="block font-medium text-brand-700 hover:underline">
+              {d.name}
+            </button>
             <span className="block text-xs text-slate-500">{d.email}</span>
           </span>
         </span>
@@ -162,6 +166,8 @@ export default function Doctors() {
           }}
         />
       )}
+
+      <DoctorDetail doctor={viewing} onClose={() => setViewing(null)} />
 
       <Drawer open={Boolean(scheduleFor)} onClose={() => setScheduleFor(null)} title={`Schedule: ${scheduleFor?.name ?? ''}`} width="max-w-2xl">
         {scheduleFor && <ScheduleEditor schedule={scheduleFor.schedule} onSave={saveSchedule} saving={schedule.pending} />}
