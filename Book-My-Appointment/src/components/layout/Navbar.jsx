@@ -29,7 +29,7 @@ export default function Navbar() {
   useEffect(() => setMenuOpen(false), [pathname])
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="no-print sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link to="/" aria-label="BookMyAppointments home" className="rounded-lg">
           <Logo />

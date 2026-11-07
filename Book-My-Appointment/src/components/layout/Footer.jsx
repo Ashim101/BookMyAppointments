@@ -25,7 +25,7 @@ const COLUMNS = [
 
 export default function Footer() {
   return (
-    <footer className="mt-16 border-t border-slate-200 bg-white">
+    <footer className="no-print mt-16 border-t border-slate-200 bg-white">
       <div className="container-page grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <Logo />
