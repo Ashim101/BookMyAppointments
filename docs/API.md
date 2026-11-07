@@ -140,7 +140,7 @@ Legend: 🔓 public · 🧑 patient · 🩺 doctor · 🛡 admin.
 - `POST /auth/google` 🔓 `{ credential }` → `AuthTokens` (patient; account created on first sign-in).
 - `POST /auth/refresh` 🔓 `{ refreshToken }` → `AuthTokens`.
 - `POST /auth/logout` 🔓 `{ refreshToken }` → `null`.
-- `POST /auth/password/forgot` 🔓 `{ email, role }` (`patient` or `doctor`) → `null`. Always succeeds, so callers cannot learn which emails exist. Emails a link to `${APP_URL}/reset-password?token=…&role=…`.
+- `POST /auth/password/forgot` 🔓 `{ email, role }` (`patient` or `doctor`) → `null`. Always succeeds, so callers cannot learn which emails exist. Emails a link to `<app url>/reset-password?token=…&role=…`, where `<app url>` is `APP_URL_PATIENT` for patients and `APP_URL_ADMIN` for doctors (there is no single `APP_URL`).
 - `POST /auth/password/reset` 🔓 `{ token, password }` → `null`. The token is single-use and valid for 30 minutes; all refresh tokens for the account are revoked.
 - `GET /auth/me` 🧑🩺🛡 → `AuthUser`.
 
