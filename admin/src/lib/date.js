@@ -17,6 +17,8 @@ export function addDays(iso, amount) {
   return toISODate(d)
 }
 
+export const daysAgoISO = (days) => addDays(todayISO(), -days)
+
 export const weekdayOf = (iso) => parseISODate(iso).getDay()
 
 /** Monday of the week containing `iso`. */
