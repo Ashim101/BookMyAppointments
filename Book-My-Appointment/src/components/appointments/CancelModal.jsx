@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import { cancelAppointment } from '../../api/appointments'
+import { usePublicSettings } from '../../hooks/usePublicSettings'
 import { useAction } from '../../hooks/useQuery'
-import { CANCELLATION_CUTOFF_HOURS } from '../../lib/config'
 import { errorMessage } from '../../lib/errors'
 import { formatDate, formatInstant, formatTime, shiftHours } from '../../lib/format'
 import { validateReason } from '../../lib/validation'
@@ -14,6 +14,8 @@ export default function CancelModal({ appointment, open, onClose, onCancelled })
   const [reason, setReason] = useState('')
   const [touched, setTouched] = useState(false)
   const cancel = useAction(cancelAppointment)
+  const settings = usePublicSettings({ enabled: open })
+  const cutoff = settings?.cancellationCutoffHours
   const error = validateReason(reason, { required: true })
 
   const submit = async (event) => {
@@ -53,9 +55,16 @@ export default function CancelModal({ appointment, open, onClose, onCancelled })
           {appointment.doctor.name} on {formatDate(appointment.date)} at {formatTime(appointment.time)}.
         </p>
         <p className="rounded-lg bg-slate-50 p-3 text-sm text-ink-700">
-          <strong>Cancellation policy:</strong> you can cancel or reschedule up to {CANCELLATION_CUTOFF_HOURS} hours before the
-          appointment, which is until {formatInstant(shiftHours(appointment.startsAt, -CANCELLATION_CUTOFF_HOURS), appointment.timezone)}. After that, please contact the
-          clinic.
+          <strong>Cancellation policy:</strong>{' '}
+          {cutoff === undefined ? (
+            'the clinic allows changes only until its cancellation cutoff.'
+          ) : (
+            <>
+              you can cancel or reschedule up to {cutoff} hours before the appointment, which is until{' '}
+              {formatInstant(shiftHours(appointment.startsAt, -cutoff), appointment.timezone)}.
+            </>
+          )}{' '}
+          After that, please contact the clinic.
           {appointment.paymentStatus === 'paid' && ' Because you have paid, a refund will be started automatically.'}
         </p>
         <Textarea

@@ -454,6 +454,20 @@ describe('admin area', () => {
       expect((await h.book(patient, doc.id, { date: h.day(8) })).status).toBe(201);
     });
 
+    it('exposes only the client-relevant settings publicly and reflects admin changes', async () => {
+      const first = await h.request.get('/api/settings/public');
+      expect(first.status).toBe(200);
+      expect(first.body.data).toEqual({
+        cancellationCutoffHours: 2,
+        bookingWindowDays: 14,
+        timezone: 'Asia/Kathmandu',
+        currency: 'INR',
+      });
+      await h.request.put('/api/admin/settings').set(as()).send({ cancellationCutoffHours: 6 }).expect(200);
+      expect((await h.request.get('/api/settings/public')).body.data.cancellationCutoffHours).toBe(6);
+      await h.request.put('/api/admin/settings').set(as()).send({ cancellationCutoffHours: 2 }).expect(200);
+    });
+
     it('applies settings to newly created doctors and validates ranges', async () => {
       await h.request
         .put('/api/admin/settings')

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { getSlots } from '../../api/doctors'
+import { usePublicSettings } from '../../hooks/usePublicSettings'
 import { useQuery } from '../../hooks/useQuery'
 import { addDays, formatDayOfMonth, formatTime, formatWeekday, timezoneLabel } from '../../lib/format'
 import { cx } from '../ui/cx'
@@ -15,9 +16,10 @@ const freeCount = (day) => day.slots.filter((s) => s.available).length
  */
 export default function SlotPicker({ doctorId, selected, onSelect, refreshKey = 0 }) {
   const [offset, setOffset] = useState(0)
-  const anchor = useRef(null)
+  const [anchor, setAnchor] = useState(null)
   const [activeDate, setActiveDate] = useState(selected?.date ?? null)
-  const from = offset > 0 ? addDays(anchor.current, offset * 7) : undefined
+  const settings = usePublicSettings()
+  const from = offset > 0 ? addDays(anchor, offset * 7) : undefined
 
   const { data, error, loading, refetch } = useQuery(['slots', doctorId, from, refreshKey], () =>
     getSlots(doctorId, { from, days: 7 }),
@@ -25,7 +27,7 @@ export default function SlotPicker({ doctorId, selected, onSelect, refreshKey = 
 
   useEffect(() => {
     if (!data) return
-    anchor.current ??= data.days[0]?.date ?? null
+    setAnchor((current) => current ?? data.days[0]?.date ?? null)
     setActiveDate((current) => {
       const stillThere = data.days.find((d) => d.date === current && freeCount(d) > 0)
       return stillThere ? current : (data.days.find((d) => freeCount(d) > 0)?.date ?? null)
@@ -37,6 +39,10 @@ export default function SlotPicker({ doctorId, selected, onSelect, refreshKey = 
   const days = data?.days ?? []
   const activeDay = days.find((d) => d.date === activeDate)
   const weekIsEmpty = days.length > 0 && days.every((d) => freeCount(d) === 0)
+  // The first week starts today (clinic time), and bookings are allowed up to bookingWindowDays from then.
+  const windowEnd = settings && anchor ? addDays(anchor, settings.bookingWindowDays) : null
+  const nextWeekStart = anchor ? addDays(anchor, (offset + 1) * 7) : null
+  const beyondWindow = windowEnd !== null && nextWeekStart > windowEnd
 
   return (
     <section aria-label="Choose a time" className="space-y-4">
@@ -52,7 +58,7 @@ export default function SlotPicker({ doctorId, selected, onSelect, refreshKey = 
         <button
           type="button"
           onClick={() => setOffset((o) => o + 1)}
-          disabled={loading || (weekIsEmpty && offset > 0)}
+          disabled={loading || beyondWindow || (weekIsEmpty && offset > 0)}
           className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-700 hover:bg-slate-100 disabled:text-ink-300 disabled:hover:bg-transparent"
         >
           Next week <FiChevronRight aria-hidden="true" />
@@ -93,7 +99,7 @@ export default function SlotPicker({ doctorId, selected, onSelect, refreshKey = 
 
           {weekIsEmpty && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              No times are open this week. {offset > 0 ? 'Go back, or the booking window may end here.' : 'Try the next week.'}
+              No times are open this week. {beyondWindow ? 'This is the end of the booking window.' : offset > 0 ? 'Go back, or the booking window may end here.' : 'Try the next week.'}
             </p>
           )}
 
