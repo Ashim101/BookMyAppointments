@@ -1,56 +1,54 @@
-import React from 'react'
-import { assets } from '../assets/assets_frontend/assets'
+import { FiClock, FiHeart, FiShield } from 'react-icons/fi'
+import { ButtonLink } from '../components/ui/Button'
+import { usePageTitle } from '../hooks/usePageTitle'
+import { BRAND } from '../lib/config'
 
-const About = () => {
-    return (
-        <div>
+const VALUES = [
+  { icon: FiClock, title: 'Respect for your time', text: 'Every slot you see is a real opening in the doctor’s calendar, so there is no guessing and no phone tag.' },
+  { icon: FiShield, title: 'Privacy by default', text: 'Your records are yours. We only show doctors what they need to look after you, and nothing is shared publicly.' },
+  { icon: FiHeart, title: 'Care, not clutter', text: 'We keep the experience simple so the focus stays on the visit: finding the right person and getting seen.' },
+]
 
-            <div className='text-center my-8'>
-                <p>
+export default function About() {
+  usePageTitle('About us')
+  return (
+    <div className="mx-auto max-w-4xl space-y-12">
+      <section>
+        <h1 className="text-3xl font-extrabold text-ink-900 sm:text-4xl">About {BRAND}</h1>
+        <p className="mt-4 text-lg text-ink-700">
+          {BRAND} connects patients with doctors who have time for them. Browse specialities, compare experience and ratings, choose
+          a time that works and pay securely online. When plans change, rescheduling takes a few taps.
+        </p>
+        <p className="mt-3 text-ink-700">
+          Behind the scenes, clinics keep control of their own schedules: working hours, breaks and days off are respected
+          automatically, and two people can never book the same slot.
+        </p>
+      </section>
 
-                    About <span>Us</span>
-                </p>
-            </div>
-            <div className='flex flex-col sm:flex-row gap-10 items-center sm:items-start'>
+      <section aria-labelledby="values-heading">
+        <h2 id="values-heading" className="mb-6 text-2xl font-bold text-ink-900">
+          What we care about
+        </h2>
+        <ul className="grid gap-4 md:grid-cols-3">
+          {VALUES.map(({ icon: Icon, title, text }) => (
+            <li key={title} className="card p-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-700">
+                <Icon aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 font-semibold text-ink-900">{title}</h3>
+              <p className="mt-1 text-sm text-ink-500">{text}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-                <div >
-                    <img className=' max-h-52 sm:max-h-fit    ' src={assets.about_image} alt="" />
-                </div>
-
-                <div className='text-xs md:text-sm border-2 border-slate-300 rounded-lg p-4 space-y-2'>
-                    <p>Welcome to Prescripto, your trusted partner in managing your healthcare needs conveniently and efficiently. At Prescripto, we understand the challenges individuals face when it comes to scheduling doctor appointments and managing their health records.</p>
-                    <p>Prescripto is committed to excellence in healthcare technology. We continuously strive to enhance our platform, integrating the latest advancements to improve user experience and deliver superior service. Whether you're booking your first appointment or managing ongoing care, Prescripto is here to support you every step of the way.</p>
-                    <p>Our Vision</p>
-                    <p>Our vision at Prescripto is to create a seamless healthcare experience for every user. We aim to bridge the gap between patients and healthcare providers, making it easier for you to access the care you need, when you need it.</p>
-                </div>
-
-
-
-
-            </div>
-
-            <div className='my-8 space-y-4'>
-                <p className='text-xl '>Why chooses Us</p>
-
-                <div className='flex border-2 border-slate-300 rounded-lg px-4 py-4 gap-4'>
-                    <div className='space-y-4'>
-                        <p className='font-semibold'>Efficiency</p>
-                        <p className='text-sm font-light'>Streamlined appointment scheduling that fits into your busy lifestyle.</p>
-                    </div>
-                    <div className='space-y-4'>
-                        <p className='font-semibold'>Convenience</p>
-                        <p className='text-sm font-light'>Access to a network of trusted healthcare professionals in your area.</p>
-                    </div>
-                    <div className='space-y-4'>
-                        <p className='font-semibold'>Personalization</p>
-                        <p className='text-sm font-light'>Tailored recommendations and reminders to help you stay on top of your health.</p>
-                    </div>
-                </div>
-            </div>
-
-
-        </div>
-    )
+      <section className="rounded-3xl bg-brand-50 p-8 text-center">
+        <h2 className="text-2xl font-bold text-ink-900">Find your doctor today</h2>
+        <p className="mt-2 text-ink-700">It takes less than a minute to see who is available this week.</p>
+        <ButtonLink to="/doctors" className="mt-5">
+          Browse doctors
+        </ButtonLink>
+      </section>
+    </div>
+  )
 }
-
-export default About

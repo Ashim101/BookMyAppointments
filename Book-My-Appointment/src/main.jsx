@@ -1,18 +1,29 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Provider } from 'react-redux'
-import { store } from './store/index.js'
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { BrowserRouter } from 'react-router-dom'
+import App from './App'
+import ErrorBoundary from './components/layout/ErrorBoundary'
+import { GOOGLE_CLIENT_ID } from './lib/config'
+import { connectApiClient, createStore } from './store'
+import './index.css'
+
+const store = createStore()
+connectApiClient(store)
+
+const app = (
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
+)
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId="622686454102-1ou1cqlkfsi7ociueolgip8bdpvh1t0s.apps.googleusercontent.com">
-
+    <ErrorBoundary>
       <Provider store={store}>
-        <App />
+        {GOOGLE_CLIENT_ID ? <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{app}</GoogleOAuthProvider> : app}
       </Provider>
-    </GoogleOAuthProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
