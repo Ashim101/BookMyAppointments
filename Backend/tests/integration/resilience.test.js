@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { AuditLog } from '../../src/modules/audit/audit.model.js';
 import { Appointment } from '../../src/modules/appointments/appointment.model.js';
 import { IdempotencyKey } from '../../src/middlewares/idempotency.js';
 import { createRazorpayProvider } from '../../src/modules/payments/providers.js';
@@ -30,8 +31,11 @@ describe('login lockout', () => {
     expect(locked.body.error.code).toBe('RATE_LIMITED');
     expect(locked.body.error.message).toMatch(/10 minute/);
 
+    expect(Number(locked.headers['retry-after'])).toBe(600);
     h.clock.advance(9 * MINUTE);
-    expect((await login(patient.email, PASSWORD)).status).toBe(429);
+    const stillLocked = await login(patient.email, PASSWORD);
+    expect(stillLocked.status).toBe(429);
+    expect(Number(stillLocked.headers['retry-after'])).toBe(60);
     h.clock.advance(2 * MINUTE);
     expect((await login(patient.email, PASSWORD)).status).toBe(200);
   });
@@ -53,6 +57,7 @@ describe('login lockout', () => {
   it('protects the admin login and never reveals whether an email exists', async () => {
     for (let i = 0; i < 3; i += 1) await login(ADMIN.email, 'nope-nope-1', 'admin');
     expect((await login(ADMIN.email, ADMIN.password, 'admin')).status).toBe(429);
+    expect(await AuditLog.countDocuments({ action: 'admin.login_failed' })).toBe(3);
     for (let i = 0; i < 3; i += 1) await login('ghost@example.com', PASSWORD);
     const ghost = await login('ghost@example.com', PASSWORD);
     expect(ghost.status).toBe(429);

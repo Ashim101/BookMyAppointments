@@ -30,6 +30,12 @@ export class AppError extends Error {
     this.status = STATUS_BY_CODE[code] ?? 500;
     this.details = details;
   }
+
+  /** Seconds a client should wait before retrying; sent as the Retry-After header. */
+  withRetryAfter(seconds) {
+    this.retryAfter = Math.max(1, Math.ceil(seconds));
+    return this;
+  }
 }
 
 export const notFound = (what = 'Resource') => new AppError('NOT_FOUND', `${what} not found`);

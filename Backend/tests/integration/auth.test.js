@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AuditLog } from '../../src/modules/audit/audit.model.js';
 import { Otp, PasswordReset, RefreshToken } from '../../src/modules/auth/auth.models.js';
 import { Patient } from '../../src/modules/patients/patient.model.js';
 import { sha256 } from '../../src/utils/crypto.js';
@@ -99,6 +100,7 @@ describe('OTP registration', () => {
     const again = await h.request.post('/api/auth/otp/request').send({ email });
     expect(again.status).toBe(429);
     expect(again.body.error.code).toBe('OTP_COOLDOWN');
+    expect(Number(again.headers['retry-after'])).toBe(60);
 
     h.clock.advance(61_000);
     await h.request.post('/api/auth/otp/request').send({ email }).expect(200);
@@ -157,6 +159,9 @@ describe('login and sessions', () => {
 
     const a = await h.request.post('/api/auth/login').send({ ...ADMIN, role: 'admin' });
     expect(a.body.data.user).toMatchObject({ id: 'admin', role: 'admin', email: ADMIN.email });
+    expect(await AuditLog.findOne({ action: 'admin.login' })).toMatchObject({
+      actor: { role: 'admin', id: 'admin' },
+    });
 
     const cases = [
       { email: 'login@example.com', password: 'wrong-password1', role: 'patient' },

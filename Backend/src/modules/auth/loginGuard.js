@@ -19,7 +19,7 @@ export function createLoginGuard({ config, clock }) {
       throw new AppError(
         'RATE_LIMITED',
         `Too many failed sign-in attempts. Try again in ${minutes} minute(s).`,
-      );
+      ).withRetryAfter(remaining / 1000);
     }
   }
 

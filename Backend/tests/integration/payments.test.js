@@ -103,15 +103,12 @@ describe('payments in mock mode', () => {
     expect((await h.request.post('/api/payments/order').send({ appointmentId: appointment.id })).status).toBe(
       401,
     );
-    const hijack = await h.request
-      .post('/api/payments/verify')
-      .set(as(stranger))
-      .send({
-        appointmentId: appointment.id,
-        orderId: order.body.data.orderId,
-        paymentId: 'mock_x',
-        signature: 'mock',
-      });
+    const hijack = await h.request.post('/api/payments/verify').set(as(stranger)).send({
+      appointmentId: appointment.id,
+      orderId: order.body.data.orderId,
+      paymentId: 'mock_x',
+      signature: 'mock',
+    });
     expect(hijack.status).toBe(404);
 
     await h.request

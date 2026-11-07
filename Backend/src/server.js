@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { createApp } from './app.js';
 import { ConfigError, loadConfig } from './config/env.js';
+import mongoose from 'mongoose';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { createLogger } from './utils/logger.js';
 
@@ -21,6 +22,9 @@ async function main() {
   const logger = createLogger(config.logLevel);
   await connectDatabase(config.mongoUri);
   logger.info('database connected');
+  mongoose.connection.on('disconnected', () => logger.warn('database connection lost'));
+  mongoose.connection.on('reconnected', () => logger.info('database connection restored'));
+  mongoose.connection.on('error', (err) => logger.error({ err }, 'database error'));
 
   const app = createApp({ config, logger });
   const { reminderJob } = app.locals.container;
@@ -50,6 +54,15 @@ async function main() {
       process.exit(1);
     }
   }
+  // A crashed process is restarted by its supervisor; exiting beats running in an unknown state.
+  process.on('unhandledRejection', (reason) => {
+    logger.fatal({ err: reason }, 'unhandled promise rejection');
+    shutdown('unhandledRejection');
+  });
+  process.on('uncaughtException', (err) => {
+    logger.fatal({ err }, 'uncaught exception');
+    shutdown('uncaughtException');
+  });
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
