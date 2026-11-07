@@ -31,6 +31,8 @@ const schema = z
     JSON_BODY_LIMIT: z.string().default('100kb'),
     UPLOAD_DIR: z.string().default('uploads'),
 
+    BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+
     JWT_ACCESS_SECRET: z.string().min(16, 'must be at least 16 characters'),
     JWT_REFRESH_SECRET: z.string().min(16, 'must be at least 16 characters'),
     ACCESS_TOKEN_TTL: z.string().default('15m'),
@@ -110,6 +112,7 @@ export function loadConfig(source = process.env) {
     trustProxy: e.TRUST_PROXY,
     bodyLimit: e.JSON_BODY_LIMIT,
     uploadDir: e.UPLOAD_DIR,
+    bcryptRounds: e.BCRYPT_ROUNDS,
     jwt: {
       accessSecret: e.JWT_ACCESS_SECRET,
       refreshSecret: e.JWT_REFRESH_SECRET,
