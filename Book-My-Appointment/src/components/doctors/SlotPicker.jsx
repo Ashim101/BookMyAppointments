@@ -17,7 +17,7 @@ export default function SlotPicker({ doctorId, selected, onSelect, refreshKey = 
   const [offset, setOffset] = useState(0)
   const anchor = useRef(null)
   const [activeDate, setActiveDate] = useState(selected?.date ?? null)
-  const from = anchor.current ? addDays(anchor.current, offset * 7) : undefined
+  const from = offset > 0 ? addDays(anchor.current, offset * 7) : undefined
 
   const { data, error, loading, refetch } = useQuery(['slots', doctorId, from, refreshKey], () =>
     getSlots(doctorId, { from, days: 7 }),
