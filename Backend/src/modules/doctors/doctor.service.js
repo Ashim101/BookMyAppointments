@@ -111,9 +111,11 @@ export function createDoctorService({ config, clock, settings, scheduling, stora
     if (input.speciality) await assertSpeciality(input.speciality);
     const changes = { ...input };
     if (file) changes.image = await storage.saveImage(file);
+    const previous = file ? await Doctor.findById(id).select('image').lean() : null;
     try {
       const doctor = await Doctor.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', runValidators: true });
       if (!doctor) throw notFound('Doctor');
+      await storage.removeImage(previous?.image);
       return await presentOne(doctor, toAdminDto);
     } catch (err) {
       if (err.code === 11000) throw emailTaken();

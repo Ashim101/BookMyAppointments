@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authorize } from '../../middlewares/authorize.js';
+import { idempotent } from '../../middlewares/idempotency.js';
 import { validate } from '../../middlewares/validate.js';
 import {
   appointmentIdSchema,
@@ -15,7 +16,7 @@ export function createAppointmentRoutes({ controller, reviewController, authenti
   const router = Router();
   router.use(authenticate);
 
-  router.post('/', authorize('patient'), validate(createAppointmentSchema), controller.create);
+  router.post('/', authorize('patient'), validate(createAppointmentSchema), idempotent, controller.create);
   router.get('/', validate(listAppointmentsSchema), controller.list);
   router.get('/:id', validate(appointmentIdSchema), controller.get);
   router.patch(

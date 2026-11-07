@@ -6,9 +6,10 @@ const MAX_PER_RUN = 500;
 /**
  * Interval scheduler that sends each appointment reminder at most once.
  * Appointments are claimed with an atomic findOneAndUpdate on `reminderSentAt: null`,
- * so several server instances can run the job without duplicating reminders.
+ * so several server instances can run the job without duplicating reminders. Optional `sweeps`
+ * (for example retrying failed refunds) run after the reminders on every tick.
  */
-export function createReminderJob({ config, clock, mailer, notifications, logger }) {
+export function createReminderJob({ config, clock, mailer, notifications, logger, sweeps = [] }) {
   let timer = null;
   let running = false;
   let lastRunAt = null;
@@ -59,6 +60,7 @@ export function createReminderJob({ config, clock, mailer, notifications, logger
     try {
       const sent = await runOnce();
       if (sent > 0) logger.info({ sent }, 'appointment reminders sent');
+      for (const sweep of sweeps) await sweep();
     } catch (err) {
       logger.error({ err }, 'reminder job failed');
     } finally {

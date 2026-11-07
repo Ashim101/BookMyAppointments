@@ -32,6 +32,15 @@ const passwordResetSchema = new mongoose.Schema({
 });
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 3600 });
 
+const loginAttemptSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  failures: { type: Number, default: 0 },
+  lockedUntil: { type: Date, default: null },
+  updatedAt: { type: Date, required: true },
+});
+loginAttemptSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 86_400 });
+
+export const LoginAttempt = mongoose.model('LoginAttempt', loginAttemptSchema);
 export const RefreshToken = mongoose.model('RefreshToken', refreshTokenSchema);
 export const Otp = mongoose.model('Otp', otpSchema);
 export const PasswordReset = mongoose.model('PasswordReset', passwordResetSchema);
