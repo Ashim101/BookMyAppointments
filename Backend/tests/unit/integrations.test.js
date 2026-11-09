@@ -44,6 +44,10 @@ const productionEnv = {
   ADMIN_EMAIL: 'owner@clinic.test',
   ADMIN_PASSWORD_HASH: '$2b$04$abcdefghijklmnopqrstuuabcdefghijklmnopqrstuvwxyz01234',
   CORS_ORIGINS: 'https://app.clinic.test',
+  PAYMENTS_MODE: 'razorpay',
+  RAZORPAY_KEY_ID: 'rzp_test_key',
+  RAZORPAY_KEY_SECRET: 'test-key-secret',
+  RAZORPAY_WEBHOOK_SECRET: 'test-webhook-secret',
 };
 const logger = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
 

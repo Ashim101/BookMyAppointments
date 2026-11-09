@@ -96,6 +96,10 @@ describe('server process', () => {
       CORS_ORIGINS: 'https://app.clinic.test',
       REMINDERS_ENABLED: 'false',
       BCRYPT_ROUNDS: '4',
+      PAYMENTS_MODE: 'razorpay',
+      RAZORPAY_KEY_ID: 'rzp_test_key',
+      RAZORPAY_KEY_SECRET: 'test-key-secret',
+      RAZORPAY_WEBHOOK_SECRET: 'test-webhook-secret',
       ...extra,
     });
 
@@ -107,6 +111,9 @@ describe('server process', () => {
       ],
       ['a short JWT secret', { JWT_REFRESH_SECRET: 'too-short-secret-value-123' }, 'JWT_REFRESH_SECRET'],
       ['a missing admin password hash', { ADMIN_PASSWORD_HASH: '' }, 'ADMIN_PASSWORD_HASH'],
+      ['mock payments selected explicitly', { PAYMENTS_MODE: 'mock' }, 'PAYMENTS_MODE'],
+      ['payments left on the default (mock)', { PAYMENTS_MODE: '' }, 'mock payments would mark'],
+      ['a missing Razorpay webhook secret', { RAZORPAY_WEBHOOK_SECRET: '' }, 'RAZORPAY_WEBHOOK_SECRET'],
     ])('refuses to start with %s', async (_name, override, variable) => {
       const { output, exited } = start(productionEnv(await freePort(), override));
       expect((await exited).code).toBe(1);
