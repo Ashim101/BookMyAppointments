@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForOtp } from '../helpers/mail.js';
 import { writeState } from '../helpers/state.js';
-import { patientLogin, patientLogout, pickFirstFreeSlot } from '../helpers/ui.js';
+import { patientLogin, patientLogout, pickSlot } from '../helpers/ui.js';
 import { urls } from '../scripts/stack.mjs';
 
 const patient = { name: 'Priya Newcomer', email: 'priya.newcomer@example.com', password: 'Sunrise2026' };
@@ -34,7 +34,7 @@ test.describe.serial('patient: from registration to cancellation', () => {
     await waitForOtp(email);
     await page.getByLabel('Digit 1 of 6').fill('000000');
     await page.getByRole('button', { name: 'Create account' }).click();
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.locator('#otp-error')).toBeVisible();
     await expect(page).toHaveURL(/\/register/);
   });
 
@@ -42,11 +42,12 @@ test.describe.serial('patient: from registration to cancellation', () => {
     await patientLogin(page, patient);
     await page.goto(`${urls.patient}/doctors`);
     await page.getByLabel('Search by name').fill('Aarav');
-    await page.getByRole('button', { name: /^search$/i }).click();
+    await page.getByLabel('Search by name').press('Enter');
+    await expect(page).toHaveURL(/search=Aarav/);
     await page.getByRole('link', { name: new RegExp(DOCTOR) }).first().click();
     await expect(page.getByRole('heading', { name: DOCTOR })).toBeVisible();
 
-    const slot = await pickFirstFreeSlot(page);
+    const slot = await pickSlot(page, { day: 'second' });
     await page.getByLabel(/Reason for visit/).fill('Persistent cough');
     await page.getByRole('button', { name: 'Confirm booking' }).click();
 
@@ -67,7 +68,7 @@ test.describe.serial('patient: from registration to cancellation', () => {
     const card = page.getByRole('article').filter({ hasText: DOCTOR }).first();
     await card.getByRole('button', { name: 'Reschedule' }).click();
     const dialog = page.getByRole('dialog');
-    const slot = await pickFirstFreeSlot(dialog);
+    const slot = await pickSlot(dialog, { day: 'last' });
     await dialog.getByRole('button', { name: /^Move to/ }).click();
     await expect(page.getByRole('dialog')).toBeHidden();
     await expect(card).toContainText(slot.label);
