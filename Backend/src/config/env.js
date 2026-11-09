@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EncryptionError, parseKeyRing } from '../utils/fieldCrypto.js';
 
 const isValidZone = (zone) => {
   try {
@@ -43,6 +44,16 @@ function validateProduction(env, ctx) {
       'must be "razorpay" in production: mock payments would mark appointments paid without a charge ' +
         '(also set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET)',
     );
+  }
+}
+
+/** Validates the key ring itself, so a malformed key stops the server at start-up instead of at first write. */
+function validateEncryption(env, ctx) {
+  try {
+    parseKeyRing({ keys: env.DATA_ENCRYPTION_KEYS, activeKeyId: env.DATA_ENCRYPTION_ACTIVE_KEY_ID });
+  } catch (err) {
+    if (!(err instanceof EncryptionError)) throw err;
+    ctx.addIssue({ code: 'custom', path: ['DATA_ENCRYPTION_KEYS'], message: err.message });
   }
 }
 
@@ -104,6 +115,9 @@ const schema = z
     RAZORPAY_KEY_SECRET: z.string().optional(),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 
+    DATA_ENCRYPTION_KEYS: z.string().min(1, 'required (npm run generate-key)'),
+    DATA_ENCRYPTION_ACTIVE_KEY_ID: z.string().min(1, 'required'),
+
     REMINDERS_ENABLED: bool.default(true),
     REMINDER_INTERVAL_MINUTES: z.coerce.number().min(0.01).default(10),
     REMINDER_LEAD_HOURS: z.coerce.number().min(0.01).default(24),
@@ -115,6 +129,7 @@ const schema = z
           ctx.addIssue({ code: 'custom', path: [key], message: 'required when PAYMENTS_MODE=razorpay' });
       }
     }
+    validateEncryption(env, ctx);
     if (env.NODE_ENV === 'production') validateProduction(env, ctx);
   });
 
@@ -194,6 +209,7 @@ export function loadConfig(source = process.env) {
       keySecret: e.RAZORPAY_KEY_SECRET ?? null,
       webhookSecret: e.RAZORPAY_WEBHOOK_SECRET ?? null,
     },
+    encryption: parseKeyRing({ keys: e.DATA_ENCRYPTION_KEYS, activeKeyId: e.DATA_ENCRYPTION_ACTIVE_KEY_ID }),
     reminders: {
       enabled: e.REMINDERS_ENABLED,
       intervalMs: Math.round(e.REMINDER_INTERVAL_MINUTES * 60_000),

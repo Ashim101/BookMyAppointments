@@ -1,19 +1,9 @@
 import mongoose from 'mongoose';
+import { encryptedList, encryptedText } from '../../utils/encryptedFields.js';
 import { addressDefinition } from '../../utils/schemas.js';
 
 const { ObjectId } = mongoose.Schema.Types;
 const addressSchema = new mongoose.Schema(addressDefinition, { _id: false });
-
-const prescriptionItem = new mongoose.Schema(
-  {
-    medicine: { type: String, required: true, trim: true, maxlength: 120 },
-    dosage: { type: String, default: '', trim: true, maxlength: 80 },
-    frequency: { type: String, default: '', trim: true, maxlength: 80 },
-    durationDays: { type: Number, default: 0, min: 0, max: 365 },
-    instructions: { type: String, default: '', trim: true, maxlength: 300 },
-  },
-  { _id: false },
-);
 
 const appointmentSchema = new mongoose.Schema(
   {
@@ -39,7 +29,7 @@ const appointmentSchema = new mongoose.Schema(
     startsAt: { type: Date, required: true },
     endsAt: { type: Date, required: true },
     timezone: { type: String, required: true },
-    reason: { type: String, default: '', trim: true, maxlength: 500 },
+    reason: encryptedText,
     fee: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true },
     status: { type: String, enum: ['booked', 'completed', 'cancelled', 'no_show'], default: 'booked' },
@@ -70,8 +60,8 @@ const appointmentSchema = new mongoose.Schema(
     consultation: {
       type: new mongoose.Schema(
         {
-          notes: { type: String, default: '', maxlength: 5000 },
-          prescription: { type: [prescriptionItem], default: [] },
+          notes: encryptedText,
+          prescription: encryptedList,
           completedAt: Date,
         },
         { _id: false },

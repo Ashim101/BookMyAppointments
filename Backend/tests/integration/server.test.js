@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { testEnv } from '../helpers/harness.js';
+import { encryptionEnv, razorpayEnv } from '../helpers/keys.js';
 
 const SERVER = fileURLToPath(new URL('../../src/server.js', import.meta.url));
 
@@ -96,10 +97,8 @@ describe('server process', () => {
       CORS_ORIGINS: 'https://app.clinic.test',
       REMINDERS_ENABLED: 'false',
       BCRYPT_ROUNDS: '4',
-      PAYMENTS_MODE: 'razorpay',
-      RAZORPAY_KEY_ID: 'rzp_test_key',
-      RAZORPAY_KEY_SECRET: 'test-key-secret',
-      RAZORPAY_WEBHOOK_SECRET: 'test-webhook-secret',
+      ...encryptionEnv(),
+      ...razorpayEnv,
       ...extra,
     });
 
@@ -114,6 +113,7 @@ describe('server process', () => {
       ['mock payments selected explicitly', { PAYMENTS_MODE: 'mock' }, 'PAYMENTS_MODE'],
       ['payments left on the default (mock)', { PAYMENTS_MODE: '' }, 'mock payments would mark'],
       ['a missing Razorpay webhook secret', { RAZORPAY_WEBHOOK_SECRET: '' }, 'RAZORPAY_WEBHOOK_SECRET'],
+      ['no encryption keys', { DATA_ENCRYPTION_KEYS: '' }, 'DATA_ENCRYPTION_KEYS'],
     ])('refuses to start with %s', async (_name, override, variable) => {
       const { output, exited } = start(productionEnv(await freePort(), override));
       expect((await exited).code).toBe(1);

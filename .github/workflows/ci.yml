@@ -154,6 +154,12 @@ jobs:
       E2E_MONGODB_URI: mongodb://127.0.0.1:27017/bma_e2e
     steps:
       - uses: actions/checkout@v4
+      - name: Generate a data-encryption key for this run
+        run: |
+          KEY="$(openssl rand -base64 32)"
+          echo "::add-mask::${KEY}"
+          echo "DATA_ENCRYPTION_KEYS=ci:${KEY}" >> "$GITHUB_ENV"
+          echo "DATA_ENCRYPTION_ACTIVE_KEY_ID=ci" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}

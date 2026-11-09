@@ -29,13 +29,14 @@ vi.mock('google-auth-library', () => ({
 }));
 vi.mock('nodemailer', () => ({ default: { createTransport: mocks.createTransport } }));
 
+const { encryptionEnv, razorpayEnv } = await import('../helpers/keys.js');
 const { loadConfig } = await import('../../src/config/env.js');
 const { createStorage, assertImageContent } = await import('../../src/modules/uploads/storage.js');
 const { createGoogleVerifier } = await import('../../src/modules/auth/googleVerifier.js');
 const { createMailer } = await import('../../src/modules/notifications/mailer.js');
 const { createPaymentProvider } = await import('../../src/modules/payments/providers.js');
 
-const base = { JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32) };
+const base = { JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32), ...encryptionEnv() };
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(16)]);
 const productionEnv = {
   NODE_ENV: 'production',
@@ -44,10 +45,7 @@ const productionEnv = {
   ADMIN_EMAIL: 'owner@clinic.test',
   ADMIN_PASSWORD_HASH: '$2b$04$abcdefghijklmnopqrstuuabcdefghijklmnopqrstuvwxyz01234',
   CORS_ORIGINS: 'https://app.clinic.test',
-  PAYMENTS_MODE: 'razorpay',
-  RAZORPAY_KEY_ID: 'rzp_test_key',
-  RAZORPAY_KEY_SECRET: 'test-key-secret',
-  RAZORPAY_WEBHOOK_SECRET: 'test-webhook-secret',
+  ...razorpayEnv,
 };
 const logger = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
 

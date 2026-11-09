@@ -41,6 +41,8 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-0}
       CLINIC_TIMEZONE: ${CLINIC_TIMEZONE:-Asia/Kathmandu}
       CURRENCY: ${CURRENCY:-INR}
+      DATA_ENCRYPTION_KEYS: "${DATA_ENCRYPTION_KEYS:?set DATA_ENCRYPTION_KEYS in .env (keyId:base64key, see .env.example)}"
+      DATA_ENCRYPTION_ACTIVE_KEY_ID: "${DATA_ENCRYPTION_ACTIVE_KEY_ID:?set DATA_ENCRYPTION_ACTIVE_KEY_ID in .env}"
       PAYMENTS_MODE: razorpay
       RAZORPAY_KEY_ID: "${RAZORPAY_KEY_ID:?production needs real payments, set RAZORPAY_KEY_ID in .env (or use docker-compose.demo.yml to try the app with mock payments)}"
       RAZORPAY_KEY_SECRET: "${RAZORPAY_KEY_SECRET:?production needs real payments, set RAZORPAY_KEY_SECRET in .env}"
