@@ -40,6 +40,16 @@ integrated. Treat this as a new system that lives in the same repository, not as
 - The audit log recorded consultation notes and prescriptions in plaintext from the complete-visit request body.
   Those fields are now dropped from audit entries (entries already written keep them; delete or expire them).
 
+### Repository history
+- The project started in December 2024 as a learning exercise built while following an online tutorial. This
+  overhaul replaces all of that code; no tutorial code, text or assets remain in the current tree.
+- Two history rewrites, with commit dates, authors and code otherwise unchanged:
+  - The `.env` files committed in December 2024 were removed from every commit. The credentials they held were
+    public and must be treated as exposed; rotating them is required regardless of the rewrite.
+  - The tutorial asset packs (`src/assets/assets_frontend`, `src/assets/assets_admin` in both apps: stock photos,
+    logos, icons and their mock-data index) and an unrelated `Backend/image.jpg` were removed from every commit,
+    because their ownership could not be established. Old commits that imported them no longer build.
+
 ### Known gaps
 - The Docker images were never built: pulling base images was refused (HTTP 401 from the registry) in the
   environment where this was written. `docker compose config` validates the Compose file, and the API's runtime
