@@ -15,12 +15,13 @@ export async function patientLogout(page, name) {
   await expect(page.getByRole('link', { name: 'Sign in' }).first()).toBeVisible();
 }
 
-export async function staffLogin(page, { email, password }, home) {
+export async function staffLogin(page, { email, password }, home, role) {
   await page.goto(`${urls.staff}/login`);
+  if (role) await page.getByRole('radio', { name: role === 'admin' ? 'Admin' : 'Doctor' }).click();
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
-  await expect(page).toHaveURL(new RegExp(`${home}`));
+  await expect(page).toHaveURL(new RegExp(home));
 }
 
 /**
