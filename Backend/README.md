@@ -17,10 +17,12 @@ npm run seed                  # optional demo data
 npm run dev                   # http://localhost:4000/api/health
 ```
 
-The server validates its environment with zod on start-up and exits with a readable list of problems.
+The server validates its environment with zod on start-up and exits with a readable list of problems. With
+`NODE_ENV=production` it additionally refuses placeholder, short or identical JWT secrets, a missing
+`ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` and unset `CORS_ORIGINS`.
 Optional integrations degrade cleanly: without Cloudinary, images go to `uploads/` and are served at
 `/uploads`; without SMTP, emails use nodemailer's `jsonTransport` and are logged (the body only at
-`debug` level, so OTPs and reset links are visible while developing); without a Google client id
+`debug` level outside production, so OTPs and reset links are visible while developing and never in production); without a Google client id
 `POST /auth/google` answers `400 BAD_REQUEST`; `PAYMENTS_MODE=mock` needs no keys.
 
 ### Demo data

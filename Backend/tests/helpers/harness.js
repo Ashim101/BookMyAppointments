@@ -52,6 +52,7 @@ export function testEnv(extra = {}) {
     ADMIN_EMAIL: ADMIN.email,
     ADMIN_PASSWORD_HASH: bcrypt.hashSync(ADMIN.password, 4),
     AUTH_RATE_LIMIT_MAX: '100000',
+    API_RATE_LIMIT_MAX: '100000',
     UPLOAD_DIR: path.join(os.tmpdir(), `bma-uploads-${randomBytes(4).toString('hex')}`),
     CLINIC_TIMEZONE: 'Asia/Kathmandu',
     REMINDERS_ENABLED: 'false',

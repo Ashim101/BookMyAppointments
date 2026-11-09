@@ -5,6 +5,7 @@ const OUTBOX_LIMIT = 100;
 /**
  * Sends mail through SMTP when configured; otherwise nodemailer's jsonTransport
  * keeps messages in memory (`outbox`) and the log instead of delivering them.
+ * In production the log never contains message bodies, whatever the log level.
  */
 export function createMailer({ config, logger }) {
   const outbox = [];
@@ -28,9 +29,9 @@ export function createMailer({ config, logger }) {
     const message = JSON.parse(info.message);
     outbox.push({ to, subject, text: message.text });
     if (outbox.length > OUTBOX_LIMIT) outbox.shift();
-    // The body is only logged at debug level so local developers can read OTPs and reset links.
     logger.info({ to, subject }, 'email captured (no SMTP configured)');
-    logger.debug({ to, text }, 'email body');
+    // Bodies carry OTPs and reset links, so only a non-production, debug-level log may show them.
+    if (!config.isProduction) logger.debug({ to, text }, 'email body');
   }
 
   return { send, outbox };
