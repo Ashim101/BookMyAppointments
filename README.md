@@ -62,9 +62,30 @@ cp .env.example .env
 # Fill in JWT_ACCESS_SECRET, JWT_REFRESH_SECRET (openssl rand -hex 32), ADMIN_EMAIL and ADMIN_PASSWORD_HASH.
 # Create the hash with:
 docker compose run --rm --no-deps backend node scripts/hash-password.js 'YourPassword1'
+# Create the data-encryption key and paste the line into DATA_ENCRYPTION_KEYS (see "Data encryption" below):
+docker compose run --rm --no-deps backend node scripts/generate-key.js
+# Also set DATA_ENCRYPTION_ACTIVE_KEY_ID to that key's id, and the three RAZORPAY_* values.
 docker compose up --build -d
 docker compose --profile seed run --rm seed     # optional demo data
 ```
+
+This is the **production stack**. It sets `PAYMENTS_MODE=razorpay` and `docker compose` stops with a clear message
+if `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` or the encryption settings are missing. Mock
+payments cannot be enabled for it, and the API itself refuses to start in production in mock mode.
+
+### Trying it locally with mock payments (demo stack)
+
+`docker-compose.demo.yml` is a separate, **local evaluation only** stack: `NODE_ENV=development` and mock
+payments, where any `mock_*` payment is accepted without a charge. It needs the same `.env` (JWT, admin and
+encryption values) but no Razorpay keys. Compose checks required variables per file, so the demo is a complete stack
+of its own rather than an override layered on `docker-compose.yml`:
+
+```bash
+docker compose -f docker-compose.demo.yml up --build -d
+docker compose -f docker-compose.demo.yml --profile seed run --rm seed
+```
+
+Never expose the demo stack to the internet or put real patient data in it.
 
 | Service | URL |
 |---|---|
@@ -72,7 +93,7 @@ docker compose --profile seed run --rm seed     # optional demo data
 | Staff console | <http://localhost:5174> |
 | API health | <http://localhost:4000/api/health> |
 
-The API runs with `NODE_ENV=production`, so it applies the production checks listed under
+The production API runs with `NODE_ENV=production`, so it applies the production checks listed under
 [Security notes](#security-notes). Without `SMTP_HOST` the one-time codes that new patients need are discarded;
 the seeded accounts below work regardless. `PUBLIC_API_URL` is compiled into both apps, so run
 `docker compose build` after changing it. Stop everything with `docker compose down` (add `-v` to delete the data).
@@ -84,7 +105,8 @@ Requires Node 20 (`nvm use`) and a MongoDB 6+ server, for example `docker run -d
 ```bash
 # API: http://localhost:4000
 cd Backend && npm ci
-cp .env.example .env            # fill in the two JWT secrets, ADMIN_EMAIL and ADMIN_PASSWORD_HASH
+cp .env.example .env            # fill in the two JWT secrets, ADMIN_EMAIL, ADMIN_PASSWORD_HASH and the encryption key
+npm run generate-key            # prints a DATA_ENCRYPTION_KEYS entry; set DATA_ENCRYPTION_ACTIVE_KEY_ID to its id
 npm run seed && npm run dev
 
 # Patient app: http://localhost:5173
@@ -145,10 +167,40 @@ docker-compose.yml    mongo, backend, patient, staff and an optional seed job
 .github/workflows/    CI
 ```
 
+## Data encryption
+
+Appointment reasons, consultation notes and prescriptions are encrypted by the API before they reach MongoDB, with
+AES-256-GCM and a random IV per value. The API's responses are unchanged. Keys come from the environment:
+
+```bash
+cd Backend && npm run generate-key          # prints e.g.  k202611:<base64 of 32 random bytes>
+# .env
+DATA_ENCRYPTION_KEYS=k202611:...            # keyId:base64key, comma-separated; every key must be 32 bytes
+DATA_ENCRYPTION_ACTIVE_KEY_ID=k202611       # the key used for new writes
+```
+
+Both variables are required in every environment and are validated at start-up. Treat the keys like any other
+production secret: keep them in a secret manager and back them up apart from the database, because data cannot be
+read without its key. Never commit a key.
+
+- **Existing data:** run `npm run encrypt-existing` once (back up first) to encrypt plaintext already in the database.
+  The API reads encrypted values only; plaintext found in these fields is refused loudly rather than served.
+- **Rotation:** generate a new key, add it to `DATA_ENCRYPTION_KEYS` *next to* the old ones, set
+  `DATA_ENCRYPTION_ACTIVE_KEY_ID` to it, restart, then run `npm run encrypt-existing` to move old values to the new
+  key. Remove the old key only after that run reports nothing left to move. The command is safe to repeat.
+- **Tampered or unreadable data** (modified ciphertext, an unknown key id) is never returned as text: the request
+  fails with a 500, and the failure is logged as `field decryption failed`.
+
 ## Security notes
 
 - In production the API refuses to start with placeholder, short or identical JWT secrets, without
   `ADMIN_PASSWORD_HASH`/`ADMIN_EMAIL`, or without an explicit `CORS_ORIGINS`.
+- **Payments:** with `NODE_ENV=production` the API only starts with `PAYMENTS_MODE=razorpay` and all three
+  `RAZORPAY_*` values; the default `mock` mode is refused with an explanation. The mock provider also refuses to
+  create orders, verify payments or refund when `NODE_ENV=production`, even if constructed directly, and there is no
+  setting that re-enables it. Local trials use `docker-compose.demo.yml`.
+- **Health data is encrypted at rest.** The appointment `reason`, the consultation `notes` and the `prescription` are
+  stored as AES-256-GCM ciphertext (see [Data encryption](#data-encryption)); the audit log never records consultation text.
 - OTPs and password-reset links are never logged in production, whatever the log level; the default level is `info`.
 - helmet headers, an explicit CORS allow-list, a per-IP limit on the whole API and a stricter one on `/api/auth/*`,
   plus per-account login lockout.

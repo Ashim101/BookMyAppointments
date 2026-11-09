@@ -172,7 +172,7 @@ Legend: 🔓 public · 🧑 patient · 🩺 doctor · 🛡 admin.
 
 ### Payments
 - `POST /payments/order` 🧑 `{ appointmentId }` → `{ mode: 'mock' | 'razorpay'; orderId: string; amount: number; currency: string; keyId: string | null }`.
-- `POST /payments/verify` 🧑 `{ appointmentId, orderId, paymentId, signature }` → `Appointment`. In `mock` mode the client sends `paymentId: 'mock_<anything>'` and `signature: 'mock'`. This is accepted only when `PAYMENTS_MODE=mock`.
+- `POST /payments/verify` 🧑 `{ appointmentId, orderId, paymentId, signature }` → `Appointment`. In `mock` mode the client sends `paymentId: 'mock_<anything>'` and `signature: 'mock'`. This is accepted only when `PAYMENTS_MODE=mock`, which the API refuses in production.
 - `POST /payments/webhook` 🔓 (Razorpay, raw body, `X-Razorpay-Signature`) → `{ received: true }`.
 
 ### Notifications

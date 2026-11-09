@@ -100,15 +100,18 @@ Two choices worth knowing:
 ### CI
 
 `.github/workflows/ci.yml` runs the same commands as above: one job per app (install, lint, coverage, build,
-production audit; coverage uploaded as an artifact), then the e2e job against a `mongo:7` service container, with
+production audit; coverage uploaded as an artifact), a job that validates both Compose files, then the e2e job against a `mongo:7` service container, with
 the Playwright report uploaded.
 
 ## Docker
 
 ```bash
-cp .env.example .env     # fill in the secrets
+cp .env.example .env     # fill in the secrets, the encryption key and the Razorpay values
 docker compose config    # validates the file and the required variables
 docker compose up --build
+
+# local trial with mock payments (never for real data):
+docker compose -f docker-compose.demo.yml up --build
 ```
 
 See the root README for the full quick start.
