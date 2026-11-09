@@ -31,6 +31,8 @@ const env = {
   JWT_ACCESS_SECRET: 'e2e-access-secret-not-for-production',
   JWT_REFRESH_SECRET: 'e2e-refresh-secret-not-for-production',
   BCRYPT_ROUNDS: '4',
+  // Short-lived access tokens make every long scenario exercise the clients' silent token refresh.
+  ACCESS_TOKEN_TTL: '5s',
   ADMIN_EMAIL: admin.email,
   ADMIN_PASSWORD_HASH: bcrypt.hashSync(admin.password, 4),
   CORS_ORIGINS: `${urls.patient},${urls.staff}`,
