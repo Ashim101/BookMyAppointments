@@ -17,7 +17,7 @@ npm run dev
 
 | Script | Purpose |
 |---|---|
-| `npm run dev` | Start the Vite dev server |
+| `npm run dev` | Start the Vite dev server on port 5174 |
 | `npm run build` | Production build into `dist/` |
 | `npm run lint` | ESLint, fails on any warning |
 | `npm test` | Vitest unit and component tests |
